@@ -37,9 +37,14 @@ case "${UNAME_S}" in
 esac
 PLUGIN_PLATFORM_DIR=$(realpath "${REPO_ROOT}/defold-rive/plugins/lib/${PLUGIN_PLATFORM}")
 LOCAL_PLUGIN_PLATFORM_DIR="${SCRIPT_DIR}/build/${PLUGIN_PLATFORM}"
+LOCAL_PLUGIN_JAR="${LOCAL_PLUGIN_PLATFORM_DIR}/plugin${LIBNAME}.jar"
 
 if [ -d "${LOCAL_PLUGIN_PLATFORM_DIR}" ]; then
     PLUGIN_PLATFORM_DIR="$(realpath "${LOCAL_PLUGIN_PLATFORM_DIR}")"
+fi
+
+if [ -f "${LOCAL_PLUGIN_JAR}" ]; then
+    JAR="${LOCAL_PLUGIN_JAR}"
 fi
 
 if [ -z "${JAR}" ]; then

@@ -1,4 +1,10 @@
 cmake_minimum_required(VERSION 3.24)
+
+set(MACOS_DEPLOYMENT_TARGET "10.15")
+if(DEFINED TARGET_PLATFORM AND TARGET_PLATFORM MATCHES "macos")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "${MACOS_DEPLOYMENT_TARGET}" CACHE STRING "Minimum macOS deployment version" FORCE)
+endif()
+
 project(defold_rive_plugin LANGUAGES C CXX)
 
 if(POLICY CMP0152)
@@ -341,7 +347,7 @@ if(TARGET_PLATFORM MATCHES "win32")
         libdlib
         libimage
         libzip
-        libmbedtls
+        libdmbedtls
         libddf
         libprofile_null
         libprofilerext_null
@@ -358,7 +364,7 @@ else()
     set(ENGINE_LIBS
         dlib
         image
-        mbedtls
+        dmbedtls
         ddf
         profile_null
         render
@@ -466,7 +472,7 @@ set_target_properties(rive_plugin PROPERTIES
 set_target_properties(rive_plugin PROPERTIES PREFIX "lib")
 
 if(TARGET_PLATFORM MATCHES "macos")
-    target_compile_options(rive_plugin PRIVATE "-mmacosx-version-min=10.15")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "${MACOS_DEPLOYMENT_TARGET}" CACHE STRING "Minimum macOS deployment version" FORCE)
     target_include_directories(rive_plugin PRIVATE
         "${REPO_ROOT}/defold-rive/include/osx"
     )
