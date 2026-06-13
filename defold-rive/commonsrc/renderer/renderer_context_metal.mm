@@ -121,7 +121,7 @@ namespace dmRive
                 {
                     mipLevelCount = 1;
                 }
-                return renderContextImpl->makeImageTexture(width, height, mipLevelCount, imageDataRGBA);
+                return renderContextImpl->makeImageTexture(width, height, mipLevelCount, rive::GPUTextureFormat::rgba32, imageDataRGBA);
             }
         }
 
