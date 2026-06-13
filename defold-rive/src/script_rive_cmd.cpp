@@ -59,6 +59,17 @@ static void AdjustViewModelListSize(rive::ViewModelInstanceHandle handle, const 
     listener->AdjustListSize(path_hash, delta);
 }
 
+static void SetViewModelListSize(rive::ViewModelInstanceHandle handle, const char* path, size_t value)
+{
+    ViewModelInstanceListener* listener = GetViewModelInstanceListener(handle);
+    if (!listener)
+    {
+        return;
+    }
+    dmhash_t path_hash = dmHashString64(path);
+    listener->SetListSize(path_hash, value);
+}
+
 static void SetViewModelInstanceCachedValue(rive::ViewModelInstanceHandle handle, const char* path, const rive::CommandQueue::ViewModelInstanceData& data)
 {
     ViewModelInstanceListener* listener = GetViewModelInstanceListener(handle);
@@ -498,6 +509,24 @@ static int Script_removeViewModelInstanceListViewModel(lua_State* L)
     rive::rcp<rive::CommandQueue> queue = dmRiveCommands::GetCommandQueue();
     queue->removeViewModelInstanceListViewModel(handle, path, value);
     AdjustViewModelListSize(handle, path, -1);
+    return 0;
+}
+
+/**
+ * Clears all entries from the nested list at the path.
+ * @name cmd.requestViewModelInstanceListClear(view_model_handle, path)
+ * @param view_model_handle [type: ViewModelInstanceHandle] View model instance owning the list.
+ * @param path [type: string] Path to the target list.
+ */
+static int Script_requestViewModelInstanceListClear(lua_State* L)
+{
+    DM_LUA_STACK_CHECK(L, 0);
+    rive::ViewModelInstanceHandle handle = CheckViewModelInstanceHandle(L, 1);
+    const char* path = luaL_checkstring(L, 2);
+
+    rive::rcp<rive::CommandQueue> queue = dmRiveCommands::GetCommandQueue();
+    queue->requestViewModelInstanceListClear(handle, path);
+    SetViewModelListSize(handle, path, 0);
     return 0;
 }
 
@@ -1447,6 +1476,7 @@ static const luaL_reg RIVE_COMMAND_FUNCTIONS[] =
     {"requestViewModelInstanceEnum",        Script_requestViewModelInstanceEnum},
     {"requestViewModelInstanceString",      Script_requestViewModelInstanceString},
     {"requestViewModelInstanceListSize",    Script_requestViewModelInstanceListSize},
+    {"requestViewModelInstanceListClear",   Script_requestViewModelInstanceListClear},
 
     {"requestStateMachineNames",            Script_requestStateMachineNames},
     {"requestDefaultViewModelInfo",         Script_requestDefaultViewModelInfo},

@@ -1016,7 +1016,7 @@ namespace dmRive
         return g_DisplayFactor;
     }
 
-    rive::Vec2D WorldToLocal(RiveComponent* component, float x, float y)
+    static void ScreenToRiveSurface(float x, float y, rive::Vec2D* position, rive::Vec2D* bounds)
     {
         dmGraphics::HContext graphics_context = dmGraphics::GetInstalledContext();
 
@@ -1038,11 +1038,45 @@ namespace dmRive
         float normalized_x = x / logical_width;
         float normalized_y = 1 - (y / logical_height);
 
-        rive::Vec2D p_local = component->m_InverseRendererTransform * rive::Vec2D(normalized_x * window_width, normalized_y * window_height);
-        return p_local;
+        *position = rive::Vec2D(normalized_x * window_width, normalized_y * window_height);
+        *bounds = rive::Vec2D(window_width, window_height);
     }
 
-    void CompRivePointerAction(RiveComponent* component, dmRive::PointerAction action, float x, float y)
+    rive::Vec2D WorldToLocal(RiveComponent* component, float x, float y)
+    {
+        rive::Vec2D position;
+        rive::Vec2D bounds;
+        ScreenToRiveSurface(x, y, &position, &bounds);
+        return component->m_InverseRendererTransform * position;
+    }
+
+    static rive::CommandQueue::PointerEvent MakePointerEvent(RiveComponent* component, float x, float y, int pointer_id)
+    {
+        rive::CommandQueue::PointerEvent pointer_event;
+        pointer_event.pointerId = pointer_id;
+
+        if (component->m_CoordGame)
+        {
+            pointer_event.fit = rive::Fit::none;
+            pointer_event.alignment = rive::Alignment::center;
+            pointer_event.screenBounds = rive::Vec2D(0.0f, 0.0f);
+            pointer_event.position = WorldToLocal(component, x, y);
+            return pointer_event;
+        }
+
+        rive::Vec2D position;
+        rive::Vec2D bounds;
+        ScreenToRiveSurface(x, y, &position, &bounds);
+
+        pointer_event.fit = component->m_Fit;
+        pointer_event.alignment = component->m_Alignment;
+        pointer_event.screenBounds = bounds;
+        pointer_event.position = position;
+        pointer_event.scaleFactor = g_DisplayFactor > 0.0f ? g_DisplayFactor : 1.0f;
+        return pointer_event;
+    }
+
+    void CompRivePointerAction(RiveComponent* component, dmRive::PointerAction action, float x, float y, int pointer_id)
     {
         if (!component || !component->m_StateMachine)
         {
@@ -1051,25 +1085,15 @@ namespace dmRive
 
         rive::rcp<rive::CommandQueue> queue = dmRiveCommands::GetCommandQueue();
         rive::StateMachineHandle state_machine = component->m_StateMachine;
-        rive::Vec2D p_local = WorldToLocal(component, x, y);
+        rive::CommandQueue::PointerEvent pointer_event = MakePointerEvent(component, x, y, pointer_id);
 
-        queue->runOnce(
-            [action, state_machine, p_local](rive::CommandServer* server)
-            {
-                rive::StateMachineInstance* instance = server->getStateMachineInstance(state_machine);
-                if (!instance)
-                {
-                    return;
-                }
-
-                switch (action)
-                {
-                    case dmRive::PointerAction::POINTER_MOVE: instance->pointerMove(p_local); break;
-                    case dmRive::PointerAction::POINTER_UP:   instance->pointerUp(p_local); break;
-                    case dmRive::PointerAction::POINTER_DOWN: instance->pointerDown(p_local); break;
-                    case dmRive::PointerAction::POINTER_EXIT: instance->pointerExit(p_local); break;
-                }
-            });
+        switch (action)
+        {
+            case dmRive::PointerAction::POINTER_MOVE: queue->pointerMove(state_machine, pointer_event); break;
+            case dmRive::PointerAction::POINTER_UP:   queue->pointerUp(state_machine, pointer_event); break;
+            case dmRive::PointerAction::POINTER_DOWN: queue->pointerDown(state_machine, pointer_event); break;
+            case dmRive::PointerAction::POINTER_EXIT: queue->pointerExit(state_machine, pointer_event); break;
+        }
     }
 
     void CompRiveDebugSetBlitMode(bool value)

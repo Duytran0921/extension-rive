@@ -28,25 +28,29 @@ rive = {}
 ---@param url url Component receiving the pointer move.
 ---@param x number Pointer x coordinate in component space.
 ---@param y number Pointer y coordinate in component space.
-function rive.pointer_move(url, x, y) end
+---@param pointer_id? number Optional stable pointer identifier for multitouch. Defaults to 0.
+function rive.pointer_move(url, x, y, pointer_id) end
 
 --- Lua wrapper for pointer up events.
 ---@param url url Component receiving the pointer release.
 ---@param x number Pointer x coordinate.
 ---@param y number Pointer y coordinate.
-function rive.pointer_up(url, x, y) end
+---@param pointer_id? number Optional stable pointer identifier for multitouch. Defaults to 0.
+function rive.pointer_up(url, x, y, pointer_id) end
 
 --- Lua wrapper for pointer down events.
 ---@param url url Component receiving the pointer press.
 ---@param x number Pointer x coordinate.
 ---@param y number Pointer y coordinate.
-function rive.pointer_down(url, x, y) end
+---@param pointer_id? number Optional stable pointer identifier for multitouch. Defaults to 0.
+function rive.pointer_down(url, x, y, pointer_id) end
 
 --- Lua wrapper for pointer exit events.
 ---@param url url Component receiving the pointer leave.
 ---@param x number Pointer x coordinate.
 ---@param y number Pointer y coordinate.
-function rive.pointer_exit(url, x, y) end
+---@param pointer_id? number Optional stable pointer identifier for multitouch. Defaults to 0.
+function rive.pointer_exit(url, x, y, pointer_id) end
 
 --- Returns the projection matrix in render coordinates.
 ---@return vmath.matrix4 matrix Current projection matrix for the window.
@@ -436,6 +440,11 @@ function rive.cmd.requestViewModelInstanceString(instance_handle, property_name)
 ---@param instance_handle ViewModelInstanceHandle View model instance handle.
 ---@param property_name string Name of the list property.
 function rive.cmd.requestViewModelInstanceListSize(instance_handle, property_name) end
+
+--- Clears all entries from the nested list at the path.
+---@param view_model_handle ViewModelInstanceHandle View model instance owning the list.
+---@param path string Path to the target list.
+function rive.cmd.requestViewModelInstanceListClear(view_model_handle, path) end
 
 --- Requests state machine names for the artboard.
 ---@param artboard_handle ArtboardHandle Artboard handle to query.

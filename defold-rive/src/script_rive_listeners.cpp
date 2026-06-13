@@ -726,6 +726,30 @@ bool ViewModelInstanceListener::AdjustListSize(dmhash_t path_hash, int32_t delta
     return true;
 }
 
+bool ViewModelInstanceListener::SetListSize(dmhash_t path_hash, size_t value)
+{
+    DM_MUTEX_OPTIONAL_SCOPED_LOCK(m_Mutex);
+    if (m_ListSizes.Capacity() == 0)
+    {
+        EnsureTableCapacity(m_ListSizes, 16);
+    }
+    else if (m_ListSizes.Full())
+    {
+        EnsureTableCapacity(m_ListSizes, m_ListSizes.Capacity() * 2);
+    }
+
+    size_t** entry = m_ListSizes.Get(path_hash);
+    if (entry && *entry)
+    {
+        **entry = value;
+        return true;
+    }
+
+    size_t* copy = new size_t(value);
+    m_ListSizes.Put(path_hash, copy);
+    return true;
+}
+
 bool ViewModelInstanceListener::EnsureListSize(dmhash_t path_hash, size_t value)
 {
     DM_MUTEX_OPTIONAL_SCOPED_LOCK(m_Mutex);
@@ -854,28 +878,7 @@ void ViewModelInstanceListener::onViewModelDataReceived(const rive::ViewModelIns
 void ViewModelInstanceListener::onViewModelListSizeReceived(const rive::ViewModelInstanceHandle handle, uint64_t requestId, std::string path, size_t size)
 {
     dmhash_t path_hash = dmHashString64(path.c_str());
-    {
-        DM_MUTEX_OPTIONAL_SCOPED_LOCK(m_Mutex);
-        if (m_ListSizes.Capacity() == 0)
-        {
-            EnsureTableCapacity(m_ListSizes, 16);
-        }
-        else if (m_ListSizes.Full())
-        {
-            EnsureTableCapacity(m_ListSizes, m_ListSizes.Capacity() * 2);
-        }
-
-        size_t** entry = m_ListSizes.Get(path_hash);
-        if (entry && *entry)
-        {
-            **entry = size;
-        }
-        else
-        {
-            size_t* copy = new size_t(size);
-            m_ListSizes.Put(path_hash, copy);
-        }
-    }
+    SetListSize(path_hash, size);
 
     static dmhash_t id = dmHashString64("onViewModelListSizeReceived");
     if (m_Callback && SetupCallback(m_Callback, id, requestId))
@@ -890,6 +893,25 @@ void ViewModelInstanceListener::onViewModelListSizeReceived(const rive::ViewMode
 
         lua_pushinteger(L, (lua_Integer)size);
         lua_setfield(L, -2, "size");
+
+        InvokeCallback(L, m_Callback);
+    }
+}
+
+void ViewModelInstanceListener::onViewModelListCleared(const rive::ViewModelInstanceHandle handle, uint64_t requestId, std::string path)
+{
+    SetListSize(dmHashString64(path.c_str()), 0);
+
+    static dmhash_t id = dmHashString64("onViewModelListCleared");
+    if (m_Callback && SetupCallback(m_Callback, id, requestId))
+    {
+        lua_State* L = dmScript::GetCallbackLuaContext(m_Callback);
+
+        lua_pushinteger(L, (lua_Integer)(uintptr_t)handle);
+        lua_setfield(L, -2, "viewModel");
+
+        lua_pushstring(L, path.c_str());
+        lua_setfield(L, -2, "path");
 
         InvokeCallback(L, m_Callback);
     }
