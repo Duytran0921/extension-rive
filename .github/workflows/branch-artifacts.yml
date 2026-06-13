@@ -354,6 +354,18 @@ jobs:
           set -euo pipefail
           spirv-opt --version
 
+      - name: Install Naga shader translator
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo --version
+          echo "${HOME}/.cargo/bin" >> "$GITHUB_PATH"
+          export PATH="${HOME}/.cargo/bin:${PATH}"
+          if ! command -v naga >/dev/null 2>&1; then
+            cargo install naga-cli --locked
+          fi
+          naga --version || naga --help >/dev/null
+
       - name: Build, (optionally) upload, and commit
         uses: ./.github/actions/rive-build
         with:
