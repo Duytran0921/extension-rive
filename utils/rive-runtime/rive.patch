@@ -78,8 +78,9 @@ index e182b38b..5f5cbe15 100644
  dependencies = path.getabsolute('dependencies/')
  dofile(path.join(dependencies, 'premake5_harfbuzz_v2.lua'))
  dofile(path.join(dependencies, 'premake5_sheenbidi_v2.lua'))
-@@ -175,6 +181,12 @@ newoption({
-     description = 'Compiles in layout features.',
+@@ -288,6 +294,12 @@ newoption({
+     trigger = 'with_rive_canvas',
+     description = 'Compiles in RenderCanvas and Ore GPU abstraction layer.',
  })
  
 +-- Optional pthread enabling (used e.g. for Emscripten wagyu builds)
