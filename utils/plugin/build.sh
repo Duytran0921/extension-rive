@@ -109,7 +109,9 @@ esac
 
 CMAKE_GENERATOR_FLAGS=()
 if [ "$HOST_PLATFORM" = "x86_64-win32" ]; then
-    CMAKE_GENERATOR_FLAGS+=("-A" "x64")
+    if [[ "${CMAKE_GENERATOR:-}" == "Visual Studio"* ]]; then
+        CMAKE_GENERATOR_FLAGS+=("-A" "x64")
+    fi
 fi
 
 CMAKE_PROTOC_ARGS=()
