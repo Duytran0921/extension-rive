@@ -38,7 +38,7 @@ on:
         required: false
         default: ""
       defold_version:
-        description: "Defold SDK version (defaults to latest stable)"
+        description: "Defold SDK version (defaults to latest beta)"
         required: false
         default: "latest"
 
