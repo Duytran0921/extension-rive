@@ -381,7 +381,7 @@ jobs:
 
   build-windows:
     if: ${{ inputs.platform == 'x86-win32' || inputs.platform == 'x86_64-win32' || inputs.platform == 'all' }}
-    runs-on: windows-2022
+    runs-on: windows-2025-vs2026
     strategy:
       matrix:
         platform: ${{ fromJSON(inputs.platform == 'all' && '["x86_64-win32"]' || format('["{0}"]', inputs.platform)) }}
@@ -402,14 +402,14 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-          vsversion: 2022
+          vsversion: 18.0
 
       - name: Setup VS DevCmd (x86)
         if: ${{ matrix.platform == 'x86-win32' }}
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x86
-          vsversion: 2022
+          vsversion: 18.0
 
       - name: Install Vulkan SDK
         uses: humbletim/install-vulkan-sdk@v1.2
@@ -743,7 +743,7 @@ jobs:
   build-plugin-windows:
     if: ${{ inputs.platform == 'x86_64-win32' || inputs.platform == 'all' }}
     needs: [build-windows, prepare-defoldsdk]
-    runs-on: windows-2022
+    runs-on: windows-2025-vs2026
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -769,6 +769,12 @@ jobs:
         shell: pwsh
         run: |
           cmake --version
+
+      - name: Setup VS DevCmd
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          vsversion: 18.0
 
       - name: Restore Defold SDK and bob.jar from cache
         uses: actions/cache/restore@v4
