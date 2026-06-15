@@ -357,7 +357,7 @@ if(TARGET_PLATFORM MATCHES "win32")
         libfont
         libresource
         libscript
-        libgamesys
+        gamesys
         libluajit-5.1
     )
 else()
