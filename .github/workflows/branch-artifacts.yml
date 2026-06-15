@@ -7,7 +7,7 @@ on:
         description: "Target platform for Rive build"
         required: true
         type: choice
-        options: ["x86_64-linux", "arm64-linux", "arm64-macos", "x86_64-macos", "arm64-ios", "x86_64-ios", "arm64-android", "armv7-android", "js-web", "wasm-web", "wasm_pthread-web", "x86-win32", "x86_64-win32", "all"]
+        options: ["x86_64-linux", "arm64-linux", "arm64-macos", "x86_64-macos", "arm64-ios", "x86_64-ios", "arm64-android", "armv7-android", "wasm-web", "wasm_pthread-web", "x86-win32", "x86_64-win32", "all"]
         default: "x86_64-linux"
       rive_repo_url:
         description: "Rive runtime repo URL (HTTPS)"
@@ -328,11 +328,11 @@ jobs:
           target_branch: ${{ inputs.target_branch || github.ref_name }}
 
   build-web:
-    if: ${{ inputs.platform == 'js-web' || inputs.platform == 'wasm-web' || inputs.platform == 'wasm_pthread-web' || inputs.platform == 'all' }}
+    if: ${{ inputs.platform == 'wasm-web' || inputs.platform == 'wasm_pthread-web' || inputs.platform == 'all' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        platform: ${{ fromJSON(inputs.platform == 'all' && '["js-web","wasm-web","wasm_pthread-web"]' || format('["{0}"]', inputs.platform)) }}
+        platform: ${{ fromJSON(inputs.platform == 'all' && '["wasm-web","wasm_pthread-web"]' || format('["{0}"]', inputs.platform)) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5

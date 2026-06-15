@@ -19,7 +19,6 @@ function Usage {
     echo "  * armv7-android"
     echo "  * wasm-web"
     echo "  * wasm_pthread-web"
-    echo "  * js-web"
     echo "  * arm64-macos"
     echo "  * x86_64-macos"
     echo "  * arm64-ios"
@@ -63,7 +62,7 @@ fi
 case $PLATFORM in
     arm64-android|armv7-android)
         ;;
-    wasm-web|js-web|wasm_pthread-web)
+    wasm-web|wasm_pthread-web)
         ;;
     arm64-macos|x86_64-macos|arm64-ios|x86_64-ios)
         ;;
@@ -190,16 +189,13 @@ case $PLATFORM in
         (cd ${RIVECPP} && ${SCRIPT_DIR_UTILS}/build_android.sh --with-pic --prefix ${PREFIX} --abis ${ARCH} --config ${CONFIGURATION})
         ;;
 
-    wasm-web|wasm_pthread-web|js-web)
+    wasm-web|wasm_pthread-web)
         case $PLATFORM in
             wasm-web)
                 ARCH=wasm
                 ;;
             wasm_pthread-web)
                 ARCH=wasm_pthread
-                ;;
-            js-web)
-                ARCH=js
                 ;;
         esac
 
@@ -213,10 +209,8 @@ case $PLATFORM in
         fi
         (cd ${RIVECPP} && ${SCRIPT_DIR_UTILS}/build_emscripten.sh --prefix ${PREFIX} --targets ${ARCH} --config ${CONFIGURATION})
 
-        if [ "js-web" != "${PLATFORM}" ]; then
-            echo "Building for Wagyu"
-            (cd ${RIVECPP} && ${SCRIPT_DIR_UTILS}/build_emscripten.sh --with-wagyu --prefix ${PREFIX} --targets ${ARCH} --config ${CONFIGURATION})
-        fi
+        echo "Building for Wagyu"
+        (cd ${RIVECPP} && ${SCRIPT_DIR_UTILS}/build_emscripten.sh --with-wagyu --prefix ${PREFIX} --targets ${ARCH} --config ${CONFIGURATION})
 
         ;;
 

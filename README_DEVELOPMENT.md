@@ -28,7 +28,7 @@ Each build will automatically copy the library to the correct place within the `
 > ./utils/rive-cpp/build_rive_cpp.sh <platform>
 
 Where platform is the 2-tuple "arch-os":
-* js-web, wasm-web
+* wasm-web
 * x86-win32, x86_64-win32
 * x86_64-osx
 * x86_64-linux
