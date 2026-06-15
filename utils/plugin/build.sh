@@ -45,11 +45,15 @@ fi
 PLATFORM="${ARGS[0]}"
 CONFIG="${CONFIG:-RelWithDebInfo}"
 BUILD_DIR="${SCRIPT_DIR}/build/${PLATFORM}"
+MACOS_DEPLOYMENT_TARGET="10.15"
+MACOS_DYLIB_MINOS="${MACOS_DEPLOYMENT_TARGET}"
 
 EXTENDER_PLATFORM="${PLATFORM}"
 case $PLATFORM in
     "arm64-macos")
         EXTENDER_PLATFORM="arm64-osx"
+        # Apple Silicon macOS starts at 11.0, even when the requested deployment target is lower.
+        MACOS_DYLIB_MINOS="11.0"
         ;;
    "x86_64-macos")
         EXTENDER_PLATFORM="x86_64-osx"
@@ -105,7 +109,9 @@ esac
 
 CMAKE_GENERATOR_FLAGS=()
 if [ "$HOST_PLATFORM" = "x86_64-win32" ]; then
-    CMAKE_GENERATOR_FLAGS+=("-A" "x64")
+    if [[ "${CMAKE_GENERATOR:-}" == "Visual Studio"* ]]; then
+        CMAKE_GENERATOR_FLAGS+=("-A" "x64")
+    fi
 fi
 
 CMAKE_PROTOC_ARGS=()
@@ -148,6 +154,11 @@ CM_ARGS=(
     -DWITH_VULKAN="${WITH_VULKAN}"
 )
 
+if [[ "$PLATFORM" == *"macos"* ]]; then
+    export MACOSX_DEPLOYMENT_TARGET="${MACOS_DEPLOYMENT_TARGET}"
+    CM_ARGS+=("-DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOS_DEPLOYMENT_TARGET}")
+fi
+
 if [ ${#CMAKE_PROTOC_ARGS[@]} -gt 0 ]; then
     CM_ARGS+=("${CMAKE_PROTOC_ARGS[@]}")
 fi
@@ -159,11 +170,38 @@ cmake "${CM_ARGS[@]}"
 
 cmake --build "${BUILD_DIR}" --config "${CONFIG}"
 
+verify_macos_dylib_deployment_target() {
+    local dylib="$1"
+    local minos
+
+    if ! command -v otool >/dev/null 2>&1; then
+        echo "error: otool is required to verify ${dylib}" >&2
+        exit 1
+    fi
+
+    minos="$(otool -l "${dylib}" | awk '
+        $1 == "cmd" && $2 == "LC_BUILD_VERSION" { in_build = 1; in_legacy = 0; next }
+        in_build && $1 == "minos" { print $2; exit }
+        $1 == "cmd" && $2 == "LC_VERSION_MIN_MACOSX" { in_build = 0; in_legacy = 1; next }
+        in_legacy && $1 == "version" { print $2; exit }
+        $1 == "cmd" { in_build = 0; in_legacy = 0 }
+    ')"
+
+    if [[ "${minos}" != "${MACOS_DYLIB_MINOS}" && "${minos}" != "${MACOS_DYLIB_MINOS}.0" ]]; then
+        echo "error: ${dylib} has macOS minimum '${minos:-unknown}', expected ${MACOS_DYLIB_MINOS}" >&2
+        exit 1
+    fi
+}
+
 copy_plugin_libs() {
     local dst_dir="$1"
     mkdir -p "${dst_dir}"
     case $PLATFORM in
         "arm64-macos"|"x86_64-macos")
+            for dylib in "${BUILD_DIR}"/*.dylib; do
+                [ -e "${dylib}" ] || break
+                verify_macos_dylib_deployment_target "${dylib}"
+            done
             cp -v "${BUILD_DIR}"/*.dylib "${dst_dir}"
             ;;
         "arm64-linux"|"x86_64-linux")

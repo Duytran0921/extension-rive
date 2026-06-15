@@ -33,7 +33,6 @@ Supported platforms:
 - `x86_64-macos`
 - `arm64-android`
 - `armv7-android`
-- `js-web`
 - `wasm-web`
 - `wasm_pthread-web`
 - `arm64-linux`

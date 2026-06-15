@@ -2,18 +2,18 @@
 
 # build_emscripten.sh
 #
-# Build Rive C++ static libraries for Emscripten (wasm/js) and install into a
+# Build Rive C++ static libraries for Emscripten (wasm) and install into a
 # PREFIX directory. Mirrors build_android.sh behavior and header layout.
 #
 # Usage:
-#   ./build_emscripten.sh --prefix /abs/prefix [--targets wasm,js,wasm_pthread] [--config release|debug]
+#   ./build_emscripten.sh --prefix /abs/prefix [--targets wasm,wasm_pthread] [--config release|debug]
 #
 # Notes:
 # - If EMSDK is set, this script sources "$EMSDK/emsdk_env.sh" and forces
 #   RIVE_EMSDK_VERSION=none so the repo does not auto-install a different SDK.
 # - Otherwise, the repo build scripts may auto-install a pinned emsdk version.
 # - Installs headers to "$PREFIX/include" (selected subtrees) and libs to
-#   "$PREFIX/lib/<target>-web" (e.g. wasm-web, js-web).
+#   "$PREFIX/lib/<target>-web" (e.g. wasm-web, wasm_pthread-web).
 
 set -euo pipefail
 shopt -s nullglob
@@ -36,7 +36,7 @@ Build Emscripten libraries and install to a PREFIX directory.
 
 Options:
   -p, --prefix PATH        Install prefix directory (required)
-  -t, --targets LIST       Comma/space-separated: wasm, js, wasm_pthread (default: wasm)
+  -t, --targets LIST       Comma/space-separated: wasm, wasm_pthread (default: wasm)
   -c, --config NAME        Build config: release|debug (default: release)
   --with-wagyu             Enable wagyu option when building wasm target
   -h, --help               Show this help
@@ -45,7 +45,7 @@ Env:
   EMSDK                    If set, sources \$EMSDK/emsdk_env.sh and uses that SDK.
 
 Examples:
-  EMSDK=~/dev/emsdk ./build_emscripten.sh --prefix /path/to/extension-rive/defold-rive --targets wasm,js --config release
+  EMSDK=~/dev/emsdk ./build_emscripten.sh --prefix /path/to/extension-rive/defold-rive --targets wasm --config release
 EOF
 }
 
@@ -146,9 +146,9 @@ cd "$BUILD_DIR"
 # Build and install for each target
 for TARGET in "${TARGET_LIST[@]}"; do
     case "$TARGET" in
-        wasm|js|wasm_pthread) ;;
+        wasm|wasm_pthread) ;;
         *)
-            echo "error: unsupported target: $TARGET (supported: wasm, js)" >&2
+            echo "error: unsupported target: $TARGET (supported: wasm, wasm_pthread)" >&2
             exit 2
             ;;
     esac
@@ -199,7 +199,7 @@ for TARGET in "${TARGET_LIST[@]}"; do
         exit 2
     fi
 
-    # Install directory per target (e.g. wasm-web, js-web, wasm_pthread-web)
+    # Install directory per target (e.g. wasm-web, wasm_pthread-web)
     TGT_LIB_DST="$LIB_ROOT/${TARGET}-web"
     mkdir -p "$TGT_LIB_DST"
 

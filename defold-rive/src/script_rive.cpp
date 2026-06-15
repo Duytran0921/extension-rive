@@ -66,8 +66,9 @@ static int Script_PointerAction(lua_State* L, dmRive::PointerAction action)
     dmScript::GetComponentFromLua(L, 1, dmRive::RIVE_MODEL_EXT, 0, (void**)&component, 0);
     lua_Number x = luaL_checknumber(L, 2);
     lua_Number y = luaL_checknumber(L, 3);
+    int pointer_id = luaL_optinteger(L, 4, 0);
 
-    CompRivePointerAction(component, action, x, y);
+    CompRivePointerAction(component, action, x, y, pointer_id);
     return 0;
 }
 
@@ -77,6 +78,7 @@ static int Script_PointerAction(lua_State* L, dmRive::PointerAction action)
  * @param url [type: url] Component receiving the pointer move.
  * @param x [type: number] Pointer x coordinate in component space.
  * @param y [type: number] Pointer y coordinate in component space.
+ * @param pointer_id [type: number|nil] Optional stable pointer identifier for multitouch. Defaults to 0.
  */
 static int Script_PointerMove(lua_State* L)
 {
@@ -89,6 +91,7 @@ static int Script_PointerMove(lua_State* L)
  * @param url [type: url] Component receiving the pointer release.
  * @param x [type: number] Pointer x coordinate.
  * @param y [type: number] Pointer y coordinate.
+ * @param pointer_id [type: number|nil] Optional stable pointer identifier for multitouch. Defaults to 0.
  */
 static int Script_PointerUp(lua_State* L)
 {
@@ -101,6 +104,7 @@ static int Script_PointerUp(lua_State* L)
  * @param url [type: url] Component receiving the pointer press.
  * @param x [type: number] Pointer x coordinate.
  * @param y [type: number] Pointer y coordinate.
+ * @param pointer_id [type: number|nil] Optional stable pointer identifier for multitouch. Defaults to 0.
  */
 static int Script_PointerDown(lua_State* L)
 {
@@ -113,6 +117,7 @@ static int Script_PointerDown(lua_State* L)
  * @param url [type: url] Component receiving the pointer leave.
  * @param x [type: number] Pointer x coordinate.
  * @param y [type: number] Pointer y coordinate.
+ * @param pointer_id [type: number|nil] Optional stable pointer identifier for multitouch. Defaults to 0.
  */
 static int Script_PointerExit(lua_State* L)
 {

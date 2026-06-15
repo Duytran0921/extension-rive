@@ -7,7 +7,7 @@ on:
         description: "Target platform for Rive build"
         required: true
         type: choice
-        options: ["x86_64-linux", "arm64-linux", "arm64-macos", "x86_64-macos", "arm64-ios", "x86_64-ios", "arm64-android", "armv7-android", "js-web", "wasm-web", "wasm_pthread-web", "x86-win32", "x86_64-win32", "all"]
+        options: ["x86_64-linux", "arm64-linux", "arm64-macos", "x86_64-macos", "arm64-ios", "x86_64-ios", "arm64-android", "armv7-android", "wasm-web", "wasm_pthread-web", "x86-win32", "x86_64-win32", "all"]
         default: "x86_64-linux"
       rive_repo_url:
         description: "Rive runtime repo URL (HTTPS)"
@@ -42,7 +42,7 @@ on:
         options: ["true", "false"]
         default: "true"
       defold_version:
-        description: "Defold SDK version (defaults to latest stable)"
+        description: "Defold SDK version (defaults to latest beta)"
         required: false
         default: "latest"
       target_branch:
@@ -91,7 +91,7 @@ on:
         type: string
         default: "true"
       defold_version:
-        description: "Defold SDK version (defaults to latest stable)"
+        description: "Defold SDK version (defaults to latest beta)"
         required: false
         type: string
         default: "latest"
@@ -114,7 +114,7 @@ jobs:
     uses: defold/github-actions-common/.github/workflows/defoldsdk.yml@master
     with:
       runner: ${{ inputs.platform == 'arm64-linux' && 'ubuntu-22.04-arm' || 'ubuntu-22.04' }}
-      defold_channel: alpha
+      defold_channel: beta
       defold_version: ${{ inputs.defold_version || 'latest' }}
       sdk_output_path: build/defoldsdk
       bob_output_path: bob.jar
@@ -328,11 +328,11 @@ jobs:
           target_branch: ${{ inputs.target_branch || github.ref_name }}
 
   build-web:
-    if: ${{ inputs.platform == 'js-web' || inputs.platform == 'wasm-web' || inputs.platform == 'wasm_pthread-web' || inputs.platform == 'all' }}
+    if: ${{ inputs.platform == 'wasm-web' || inputs.platform == 'wasm_pthread-web' || inputs.platform == 'all' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        platform: ${{ fromJSON(inputs.platform == 'all' && '["js-web","wasm-web","wasm_pthread-web"]' || format('["{0}"]', inputs.platform)) }}
+        platform: ${{ fromJSON(inputs.platform == 'all' && '["wasm-web","wasm_pthread-web"]' || format('["{0}"]', inputs.platform)) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -354,6 +354,18 @@ jobs:
           set -euo pipefail
           spirv-opt --version
 
+      - name: Install Naga shader translator
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo --version
+          echo "${HOME}/.cargo/bin" >> "$GITHUB_PATH"
+          export PATH="${HOME}/.cargo/bin:${PATH}"
+          if ! command -v naga >/dev/null 2>&1; then
+            cargo install naga-cli --locked
+          fi
+          naga --version || naga --help >/dev/null
+
       - name: Build, (optionally) upload, and commit
         uses: ./.github/actions/rive-build
         with:
@@ -369,7 +381,7 @@ jobs:
 
   build-windows:
     if: ${{ inputs.platform == 'x86-win32' || inputs.platform == 'x86_64-win32' || inputs.platform == 'all' }}
-    runs-on: windows-2022
+    runs-on: windows-2025-vs2026
     strategy:
       matrix:
         platform: ${{ fromJSON(inputs.platform == 'all' && '["x86_64-win32"]' || format('["{0}"]', inputs.platform)) }}
@@ -390,14 +402,14 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-          vsversion: 2022
+          vsversion: 18.0
 
       - name: Setup VS DevCmd (x86)
         if: ${{ matrix.platform == 'x86-win32' }}
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x86
-          vsversion: 2022
+          vsversion: 18.0
 
       - name: Install Vulkan SDK
         uses: humbletim/install-vulkan-sdk@v1.2
@@ -731,7 +743,7 @@ jobs:
   build-plugin-windows:
     if: ${{ inputs.platform == 'x86_64-win32' || inputs.platform == 'all' }}
     needs: [build-windows, prepare-defoldsdk]
-    runs-on: windows-2022
+    runs-on: windows-2025-vs2026
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -757,6 +769,12 @@ jobs:
         shell: pwsh
         run: |
           cmake --version
+
+      - name: Setup VS DevCmd
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          vsversion: 18.0
 
       - name: Restore Defold SDK and bob.jar from cache
         uses: actions/cache/restore@v4

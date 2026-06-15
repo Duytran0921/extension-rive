@@ -21,7 +21,7 @@ on:
         description: "Target platform for Rive build"
         required: true
         type: choice
-        options: ["x86_64-linux", "arm64-linux", "arm64-macos", "x86_64-macos", "arm64-ios", "x86_64-ios", "arm64-android", "armv7-android", "js-web", "wasm-web", "wasm_pthread-web", "x86-win32", "x86_64-win32", "all"]
+        options: ["x86_64-linux", "arm64-linux", "arm64-macos", "x86_64-macos", "arm64-ios", "x86_64-ios", "arm64-android", "armv7-android", "wasm-web", "wasm_pthread-web", "x86-win32", "x86_64-win32", "all"]
         default: "all"
       rive_repo_url:
         description: "Rive runtime repo URL (HTTPS)"
@@ -38,7 +38,7 @@ on:
         required: false
         default: ""
       defold_version:
-        description: "Defold SDK version (defaults to latest stable)"
+        description: "Defold SDK version (defaults to latest beta)"
         required: false
         default: "latest"
 

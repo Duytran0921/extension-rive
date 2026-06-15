@@ -207,7 +207,7 @@ namespace dmRive
                 mipLevelCount = 1;
 
             auto renderContextImpl = m_RenderContext->static_impl_cast<rive::gpu::RenderContextGLImpl>();
-            auto texture = renderContextImpl->makeImageTexture(width, height, mipLevelCount, imageDataRGBA);
+            auto texture = renderContextImpl->makeImageTexture(width, height, mipLevelCount, rive::GPUTextureFormat::rgba32, imageDataRGBA);
             OpenGLCheckError("MakeImageTexture After");
             return texture;
         }

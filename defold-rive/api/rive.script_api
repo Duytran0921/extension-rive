@@ -17,6 +17,9 @@
       - name: y
         type: number
         desc: Pointer y coordinate in component space.
+      - name: pointer_id
+        type: number|nil
+        desc: Optional stable pointer identifier for multitouch. Defaults to 0.
 
 #*****************************************************************************************************
 
@@ -33,6 +36,9 @@
       - name: y
         type: number
         desc: Pointer y coordinate.
+      - name: pointer_id
+        type: number|nil
+        desc: Optional stable pointer identifier for multitouch. Defaults to 0.
 
 #*****************************************************************************************************
 
@@ -49,6 +55,9 @@
       - name: y
         type: number
         desc: Pointer y coordinate.
+      - name: pointer_id
+        type: number|nil
+        desc: Optional stable pointer identifier for multitouch. Defaults to 0.
 
 #*****************************************************************************************************
 
@@ -65,6 +74,9 @@
       - name: y
         type: number
         desc: Pointer y coordinate.
+      - name: pointer_id
+        type: number|nil
+        desc: Optional stable pointer identifier for multitouch. Defaults to 0.
 
 #*****************************************************************************************************
 
@@ -1115,6 +1127,19 @@
       - name: property_name
         type: string
         desc: Name of the list property.
+
+#*****************************************************************************************************
+
+  - name: requestViewModelInstanceListClear
+    type: function
+    desc: Clears all entries from the nested list at the path.
+    parameters:
+      - name: view_model_handle
+        type: ViewModelInstanceHandle
+        desc: View model instance owning the list.
+      - name: path
+        type: string
+        desc: Path to the target list.
 
 #*****************************************************************************************************
 

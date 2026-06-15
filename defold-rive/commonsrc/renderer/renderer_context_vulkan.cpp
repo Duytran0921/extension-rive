@@ -245,7 +245,7 @@ namespace dmRive
             }
 
             auto render_context_impl = m_RenderContext->static_impl_cast<rive::gpu::RenderContextVulkanImpl>();
-            return render_context_impl->makeImageTexture(width, height, mipLevelCount, imageDataRGBA);
+            return render_context_impl->makeImageTexture(width, height, mipLevelCount, rive::GPUTextureFormat::rgba32, imageDataRGBA);
         }
 
         rive::rcp<rive::gpu::Texture> MakeImageTextureASTC(uint32_t width,

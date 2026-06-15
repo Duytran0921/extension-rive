@@ -87,7 +87,7 @@ namespace dmRive
         POINTER_EXIT,
     };
 
-    void CompRivePointerAction(RiveComponent* component, PointerAction cmd, float x, float y);
+    void CompRivePointerAction(RiveComponent* component, PointerAction cmd, float x, float y, int pointer_id);
 }
 
 #endif // DM_GAMESYS_COMP_RIVE_H

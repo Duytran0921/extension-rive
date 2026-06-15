@@ -9,7 +9,7 @@ jobs:
     uses: defold/github-actions-common/.github/workflows/defoldsdk.yml@master
     with:
       runner: ubuntu-22.04
-      defold_channel: alpha
+      defold_channel: beta
       defold_version: ${{ github.event.inputs.defold_version || 'latest' }}
       sdk_output_path: build/defoldsdk
       bob_output_path: bob.jar
@@ -26,7 +26,7 @@ jobs:
             platform: x86_64-linux
           - os: macos-latest
             platform: arm64-macos
-          - os: windows-2022
+          - os: windows-2025-vs2026
             platform: x86_64-win32
 
     steps:
@@ -87,7 +87,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-          vsversion: 2022
+          vsversion: 18.0
 
       - name: Restore Defold SDK and bob.jar from cache
         uses: actions/cache/restore@v4

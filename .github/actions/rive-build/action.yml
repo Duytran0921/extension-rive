@@ -176,6 +176,10 @@ runs:
             premake_repo="${RIVE_ROOT}/build/dependencies/premake-core"
             premake_exe="${premake_repo}/bin/release/premake5.exe"
             premake_tag="v5.0.0-beta7"
+            premake_bootstrap_platform="x64"
+            if [ "$INPUT_PLATFORM" = "x86-win32" ]; then
+              premake_bootstrap_platform="x86"
+            fi
 
             if [[ ! -x "${premake_exe}" ]]; then
               rm -rf "${premake_repo}"
@@ -183,7 +187,7 @@ runs:
               git clone --depth 1 --branch "${premake_tag}" https://github.com/premake/premake-core.git "${premake_repo}"
               (
                 cd "${premake_repo}"
-                cmd //c Bootstrap.bat
+                cmd //c "nmake MSDEV=vs2022 PLATFORM=${premake_bootstrap_platform} CONFIG=release -f Bootstrap.mak windows-msbuild"
               )
             fi
 

@@ -97,6 +97,7 @@ public:
     bool GetPropertyValue(dmhash_t path_hash, rive::CommandQueue::ViewModelInstanceData& out) const;
     bool GetListSize(dmhash_t path_hash, size_t& out) const;
     bool AdjustListSize(dmhash_t path_hash, int32_t delta);
+    bool SetListSize(dmhash_t path_hash, size_t value);
     bool EnsureListSize(dmhash_t path_hash, size_t value);
     virtual void onViewModelInstanceViewModelNameReceived(const rive::ViewModelInstanceHandle,
                                                          uint64_t requestId,
@@ -105,6 +106,7 @@ public:
     virtual void onViewModelDeleted(const rive::ViewModelInstanceHandle, uint64_t requestId) override;
     virtual void onViewModelDataReceived(const rive::ViewModelInstanceHandle, uint64_t requestId, rive::CommandQueue::ViewModelInstanceData) override;
     virtual void onViewModelListSizeReceived(const rive::ViewModelInstanceHandle, uint64_t requestId, std::string path, size_t size) override;
+    virtual void onViewModelListCleared(const rive::ViewModelInstanceHandle, uint64_t requestId, std::string path) override;
     dmScript::LuaCallbackInfo* m_Callback;
 private:
     dmMutex::HMutex m_Mutex;
