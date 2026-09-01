@@ -1,5 +1,5 @@
 diff --git a/.gitignore b/.gitignore
-index 45d41876..2b08d4e6 100644
+index 45d4187..2b08d4e 100644
 --- a/.gitignore
 +++ b/.gitignore
 @@ -56,6 +56,7 @@ dev/analysis_report
@@ -11,19 +11,19 @@ index 45d41876..2b08d4e6 100644
  # Skia dependencies
  skia/dependencies/skia_recorder
 diff --git a/build/rive_build_config.lua b/build/rive_build_config.lua
-index 9bde82ad..36a17a4b 100644
+index 7e04f4e..d5e3f50 100644
 --- a/build/rive_build_config.lua
 +++ b/build/rive_build_config.lua
-@@ -422,7 +422,7 @@ if _OPTIONS['for_android'] then
+@@ -537,7 +537,7 @@ if _OPTIONS['for_android'] then
  
      -- Detect the NDK.
      local EXPECTED_NDK_VERSION = 'r27c'
 -    local NDK_LONG_VERSION_STRING = "27.2.12479018"
 +    local NDK_LONG_VERSION_STRING = "25.2.9519653"
-     if _OPTIONS['for_unreal'] then
-         EXPECTED_NDK_VERSION = '25.1.8937393'
-         NDK_LONG_VERSION_STRING = '25.1.8937393'
-@@ -559,6 +559,37 @@ end
+     ndk = os.getenv('NDK_PATH') or os.getenv('ANDROID_NDK') or '<undefined>'
+     local ndk_version = '<undetected>'
+     local ndk_long_version = '<undetected>'
+@@ -670,6 +670,37 @@ end
  
  filter({})
  
@@ -62,10 +62,10 @@ index 9bde82ad..36a17a4b 100644
  do
      defines({ 'RIVE_MACOSX' })
 diff --git a/premake5_v2.lua b/premake5_v2.lua
-index e182b38b..5f5cbe15 100644
+index bdb1cf3..df79b7c 100644
 --- a/premake5_v2.lua
 +++ b/premake5_v2.lua
-@@ -32,6 +32,12 @@ do
+@@ -84,6 +84,12 @@ do
  end
  filter({})
  
@@ -78,9 +78,8 @@ index e182b38b..5f5cbe15 100644
  dependencies = path.getabsolute('dependencies/')
  dofile(path.join(dependencies, 'premake5_harfbuzz_v2.lua'))
  dofile(path.join(dependencies, 'premake5_sheenbidi_v2.lua'))
-@@ -288,6 +294,12 @@ newoption({
-     trigger = 'with_rive_canvas',
-     description = 'Compiles in RenderCanvas and Ore GPU abstraction layer.',
+@@ -399,6 +405,12 @@ newoption({
+         .. 'Defined only by editor_native — never by runtime SDK consumers.',
  })
  
 +-- Optional pthread enabling (used e.g. for Emscripten wagyu builds)
@@ -93,7 +92,7 @@ index e182b38b..5f5cbe15 100644
      trigger = 'with_rive_docs',
      description = 'Indicates building for use with the docs generator.',
 diff --git a/renderer/premake5.lua b/renderer/premake5.lua
-index 57d5a28d..bd629f1a 100644
+index a93f3a4..e0f43a1 100644
 --- a/renderer/premake5.lua
 +++ b/renderer/premake5.lua
 @@ -6,11 +6,11 @@ dofile(RIVE_RUNTIME_DIR .. '/decoders/premake5_v2.lua')
@@ -110,20 +109,11 @@ index 57d5a28d..bd629f1a 100644
      project('path_fiddle')
      do
          dependson('rive')
-@@ -179,7 +179,7 @@ if not _OPTIONS['with-webgpu'] then
-     end
- end
- 
--if _OPTIONS['with-webgpu'] or _OPTIONS['with-dawn'] then
-+if (_OPTIONS['with-webgpu'] or _OPTIONS['with-dawn']) and not _OPTIONS['with-libs-only']  then
-     project('webgpu_player')
-     do
-         kind('ConsoleApp')
 diff --git a/renderer/premake5_pls_renderer.lua b/renderer/premake5_pls_renderer.lua
-index 8139c785..ed43f0af 100644
+index a74e446..7a67640 100644
 --- a/renderer/premake5_pls_renderer.lua
 +++ b/renderer/premake5_pls_renderer.lua
-@@ -68,6 +68,11 @@ do
+@@ -179,6 +179,11 @@ do
      defines({ 'RIVE_WEBGPU=' .. _OPTIONS['webgpu-version'] })
  end
  
@@ -135,7 +125,7 @@ index 8139c785..ed43f0af 100644
  filter({})
  
  newoption({
-@@ -316,6 +321,7 @@ do
+@@ -632,6 +637,7 @@ do
      filter({})
  
      if RIVE_WAGYU_PORT then
