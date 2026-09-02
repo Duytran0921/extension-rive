@@ -359,6 +359,17 @@ namespace dmRive
             BindViewModelInstance(component);
         }
 
+        // Defensive, not just for the fresh-handle case (which was never
+        // marked settled to begin with): old_handle isn't explicitly
+        // deleted above, so if handle values ever get reused, a stale
+        // settled entry from whatever used this number before could
+        // otherwise skip advancing a state machine that was never actually
+        // given the chance to run.
+        if (component->m_StateMachine)
+        {
+            ClearStateMachineSettled(component->m_StateMachine);
+        }
+
         return old_handle;
     }
 
@@ -678,7 +689,19 @@ namespace dmRive
                 continue;
             }
 
-            queue->advanceStateMachine(component.m_StateMachine, dt * component.m_AnimationPlaybackRate);
+            // Settled means the last onStateMachineSettled for this handle
+            // hasn't been followed by anything that should wake it back up
+            // (CompRivePointerAction, CompRiveSetArtboard/SetStateMachine
+            // below, or a script-side rive.wake() around a view model write
+            // - see script_rive_listeners.h). Skipping it here is the whole
+            // fix: advanceStateMachine() used to run for every live
+            // component every frame regardless of whether it had anything
+            // left to do, which dominated a board's CPU/thermal cost even
+            // with animation off entirely (RIVE_BOARD_CPU_HEAT memory).
+            if (!IsStateMachineSettled(component.m_StateMachine))
+            {
+                queue->advanceStateMachine(component.m_StateMachine, dt * component.m_AnimationPlaybackRate);
+            }
 
             if (component.m_ReHash || (component.m_RenderConstants && dmGameSystem::AreRenderConstantsUpdated(component.m_RenderConstants)))
             {
@@ -1086,6 +1109,10 @@ namespace dmRive
         rive::rcp<rive::CommandQueue> queue = dmRiveCommands::GetCommandQueue();
         rive::StateMachineHandle state_machine = component->m_StateMachine;
         rive::CommandQueue::PointerEvent pointer_event = MakePointerEvent(component, x, y, pointer_id);
+
+        // A settled machine needs to be advanced again to actually process
+        // this pointer event - see IsStateMachineSettled in the update loop.
+        ClearStateMachineSettled(state_machine);
 
         switch (action)
         {
