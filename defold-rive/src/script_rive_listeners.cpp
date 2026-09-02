@@ -951,12 +951,20 @@ bool StateMachineListener::IsSettled(rive::StateMachineHandle handle) const
 void StateMachineListener::ClearSettled(rive::StateMachineHandle handle)
 {
     DM_MUTEX_OPTIONAL_SCOPED_LOCK(m_Mutex);
-    // dmHashTable::Erase() asserts m_HashTableSize != 0 - calling it before
-    // the table has ever been grown (i.e. before anything has ever settled)
-    // aborts the whole engine. Found the hard way: every rive.wake() call
-    // and pointer action calls ClearSettled unconditionally from the very
-    // first frame, long before any state machine has had a chance to settle.
+    // dmHashTable::Erase() asserts twice over, both found the hard way by
+    // crashing the whole engine: once if the table was never grown at all
+    // (m_HashTableSize != 0), and again if the specific key was never Put
+    // (entry_ptr != INVALID_INDEX - it does not tolerate erasing an absent
+    // key, unlike most hash table APIs). ClearSettled is called
+    // unconditionally and often - every rive.wake() call, every pointer
+    // action, every freshly spawned component - and the overwhelming
+    // majority of the time the handle was never marked settled to begin
+    // with, so both guards are load-bearing, not just the first one.
     if (m_Settled.Capacity() == 0)
+    {
+        return;
+    }
+    if (m_Settled.Get((uintptr_t)handle) == 0)
     {
         return;
     }
