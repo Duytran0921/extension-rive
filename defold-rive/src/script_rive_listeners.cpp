@@ -937,12 +937,29 @@ StateMachineListener::~StateMachineListener()
 bool StateMachineListener::IsSettled(rive::StateMachineHandle handle) const
 {
     DM_MUTEX_OPTIONAL_SCOPED_LOCK(m_Mutex);
+    // Capacity 0 means nothing has ever settled yet (onStateMachineSettled,
+    // the only place that grows this table, hasn't fired) - Get() on a
+    // never-grown dmHashTable is as unsafe as Erase() below, same as
+    // m_PropertyValues/m_ListSizes above guard for the same reason.
+    if (m_Settled.Capacity() == 0)
+    {
+        return false;
+    }
     return m_Settled.Get((uintptr_t)handle) != 0;
 }
 
 void StateMachineListener::ClearSettled(rive::StateMachineHandle handle)
 {
     DM_MUTEX_OPTIONAL_SCOPED_LOCK(m_Mutex);
+    // dmHashTable::Erase() asserts m_HashTableSize != 0 - calling it before
+    // the table has ever been grown (i.e. before anything has ever settled)
+    // aborts the whole engine. Found the hard way: every rive.wake() call
+    // and pointer action calls ClearSettled unconditionally from the very
+    // first frame, long before any state machine has had a chance to settle.
+    if (m_Settled.Capacity() == 0)
+    {
+        return;
+    }
     m_Settled.Erase((uintptr_t)handle);
 }
 
