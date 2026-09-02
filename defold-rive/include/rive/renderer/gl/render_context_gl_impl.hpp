@@ -9,7 +9,10 @@
 #include "rive/renderer/gl/gl_utils.hpp"
 #include "rive/renderer/render_context_helper_impl.hpp"
 
+#include <atomic>
+#include <mutex>
 #include <unordered_map>
+#include <vector>
 
 namespace rive
 {
@@ -20,9 +23,6 @@ class RiveRenderPaint;
 namespace rive::gpu
 {
 class RenderTargetGL;
-#ifdef RIVE_CANVAS
-class CanvasMirrorTextureGLImpl;
-#endif
 
 // OpenGL backend implementation of RenderContextImpl.
 class RenderContextGLImpl : public RenderContextHelperImpl
@@ -66,16 +66,13 @@ public:
                                    GLuint textureID);
 
 #ifdef RIVE_CANVAS
-    rcp<RenderCanvas> makeRenderCanvas(uint32_t width,
-                                       uint32_t height) override;
+    void ensureCanvasBacking(gpu::RenderCanvas* canvas) override;
 
     std::unique_ptr<rive::ore::Context> makeOreContext() override;
 
     // GL-only: returns a Y-flipped companion of a Rive 2D RenderCanvas
     // texture, lazily allocating it on first call. Returns nullptr if
     // `sourceTex` is not a canvas target (i.e. it's a regular image).
-    // Called directly from lua_gpu.cpp behind #ifdef ORE_BACKEND_GL.
-    // See dev/ore_canvas_import_invariant.md.
     rcp<RiveRenderImage> getCanvasImportMirror(gpu::Texture* sourceTex,
                                                uint32_t width,
                                                uint32_t height);
@@ -87,30 +84,27 @@ public:
     // bottom-up in memory; consumers that sample it from a WGSL shader
     // need a top-up companion texture. The registry tracks the source
     // canvas GLuint, lazily allocates a companion + a pair of FBOs the
-    // first time wrapRiveTexture is called for it, and arranges for the
-    // companion to be Y-flip-blitted at the end of the source canvas's
-    // own flush() (when GL state is clean).
+    // first time the canvas is imported, and arranges for the companion
+    // to be Y-flip-blitted at the end of the source canvas's own flush()
+    // (when GL state is clean).
     //
-    // Lifetime: registerCanvasTarget is called from makeRenderCanvas;
+    // Lifetime: registerCanvasTarget is called from ensureCanvasBacking;
     // unregisterCanvasTarget is called from the canvas-target texture's
-    // destructor (CanvasTargetTextureGLImpl) so the entry is freed when
-    // the source GLuint is released. Mirror textures live independently
-    // via the RiveRenderImage returned to the caller; their destruction
-    // releases their FBOs and clears the entry's mirror pointer (but
-    // not the registry slot itself, which dies with the source).
-    //
-    // See dev/ore_canvas_import_invariant.md for the full architecture
-    // discussion.
+    // destructor (CanvasTargetTextureGLImpl). The entry owns the
+    // companion, so every import of one source shares one companion and
+    // it outlives any single view of it.
 
     void registerCanvasTarget(GLuint sourceTex);
     void unregisterCanvasTarget(GLuint sourceTex);
 
+    // A deferred canvas is dropped by the thread that recorded it, so its entry
+    // and the FBOs in it come down on this context's own thread instead.
+    void releaseCanvasTarget(GLuint sourceTex);
+
     // Looks up an existing mirror for `sourceTex` and allocates one if
     // none exists yet. Returns nullptr if `sourceTex` was never registered
     // (i.e. is not a canvas target — caller should fall through to a
-    // direct view of the source). The returned RiveRenderImage owns the
-    // companion GLuint; when its refcount drops to zero, the companion
-    // (and its FBOs) are released.
+    // direct view of the source).
     rcp<RiveRenderImage> getOrCreateCanvasMirror(GLuint sourceTex,
                                                  uint32_t width,
                                                  uint32_t height);
@@ -127,6 +121,10 @@ public:
     // Re-binds Rive internal resources and invalidates the internal cache of GL
     // state.
     void invalidateGLState();
+
+    // Sampler objects and texture unit bindings are global state no FBO or VAO
+    // restores, so Ore's leftovers would override our sampling parameters.
+    void scrubStateAfterOre() override;
 
     // Called *before* the GL context will be modified externally.
     // Unbinds Rive internal resources before yielding control of the GL
@@ -147,7 +145,7 @@ public:
     // buffers are only supported via extensions in GL.
     //
     // These are sorted with the most preferred types higher up in the list.
-    enum class AtlasRenderType
+    enum class FeatherAtlasRenderType
     {
         r16f, // Most preferred. Balances performances with precision.
         r32f, // Uses HW blending to count coverage.
@@ -162,20 +160,24 @@ public:
                // up coverage into all 4 components of an RGBA texture.
     };
 
-    AtlasRenderType atlasRenderType() const { return m_atlasRenderType; }
+    FeatherAtlasRenderType featherAtlasRenderType() const
+    {
+        return m_featherAtlasRenderType;
+    }
 
 #ifdef WITH_RIVE_TOOLS
-    // Changes the context's AtlasRenderType for testing purposes. If
+    // Changes the context's FeatherAtlasRenderType for testing purposes. If
     // atlasDesiredRenderType is not supported, the next supported
     // AtlasRenderType down the list is chosen.
     //
-    // Returns the original AtlasRenderType from before this call was made.
+    // Returns the original FeatherAtlasRenderType from before this call was
+    // made.
     //
     // NOTE: this also calls releaseResources() on the owning RenderContext to
     // ensure the atlas texture gets reallocated.
-    AtlasRenderType testingOnly_resetAtlasDesiredRenderType(
+    FeatherAtlasRenderType testingOnly_resetFeatherAtlasDesiredRenderType(
         RenderContext* owningRenderContext,
-        AtlasRenderType atlasDesiredRenderType);
+        FeatherAtlasRenderType desiredRenderType);
 
     bool testingOnly_setBlendAdvancedCoherentKHRSupported(bool supported);
     bool testingOnly_setBlendAdvancedKHRSupported(bool supported);
@@ -275,7 +277,7 @@ private:
                         std::unique_ptr<PixelLocalStorageImpl>,
                         ShaderCompilationMode);
 
-    void buildAtlasRenderPipelines();
+    void buildFeatherAtlasRenderPipelines();
 
     std::unique_ptr<BufferRing> makeUniformBufferRing(
         size_t capacityInBytes) override;
@@ -287,7 +289,7 @@ private:
 
     void resizeGradientTexture(uint32_t width, uint32_t height) override;
     void resizeTessellationTexture(uint32_t width, uint32_t height) override;
-    void resizeAtlasTexture(uint32_t width, uint32_t height) override;
+    void resizeFeatherAtlasTexture(uint32_t width, uint32_t height) override;
     void resizeTransientPLSBacking(uint32_t width,
                                    uint32_t height,
                                    uint32_t planeCount) override;
@@ -351,7 +353,7 @@ private:
     GLuint m_gradientTexture = 0;
 
     // Gaussian integral table for feathering.
-    glutils::Texture m_featherTexture;
+    glutils::Texture m_gaussianIntegralTexture;
 
     // Tessellation texture rendering.
     glutils::Program m_tessellateProgram;
@@ -360,8 +362,8 @@ private:
     glutils::Framebuffer m_tessellateFBO;
     GLuint m_tessVertexTexture = 0;
 
-    // Renders feathers to the atlas texture.
-    class AtlasProgram
+    // Renders feathers to the feather atlas texture.
+    class FeatherAtlasProgram
     {
     public:
         void compile(GLuint vertexShaderID,
@@ -385,22 +387,23 @@ private:
     };
 
     // Atlas rendering pipelines.
-    AtlasRenderType m_atlasRenderType;
-    glutils::Shader m_atlasVertexShader;
-    AtlasProgram m_atlasFillProgram;
-    AtlasProgram m_atlasStrokeProgram;
-    gpu::PipelineState m_atlasFillPipelineState;
-    gpu::PipelineState m_atlasStrokePipelineState;
+    FeatherAtlasRenderType m_featherAtlasRenderType;
+    glutils::Shader m_featherAtlasVertexShader;
+    FeatherAtlasProgram m_featherAtlasFillProgram;
+    FeatherAtlasProgram m_featherAtlasStrokeProgram;
+    gpu::PipelineState m_featherAtlasFillPipelineState;
+    gpu::PipelineState m_featherAtlasStrokePipelineState;
     // Pipelines for clearing and resolving atlases into a GL_R8 texture for
     // sampling.
-    glutils::Shader m_atlasResolveVertexShader;
-    glutils::Program m_atlasClearProgram = glutils::Program::Zero();
-    glutils::Program m_atlasResolveProgram = glutils::Program::Zero();
-    glutils::VAO m_atlasResolveVAO;
-    glutils::Texture m_atlasRenderTexture = glutils::Texture::Zero();
-    glutils::Texture m_atlasTexture = glutils::Texture::Zero();
-    glutils::Framebuffer m_atlasRenderFBO = glutils::Framebuffer::Zero();
-    glutils::Framebuffer m_atlasResolveFBO = glutils::Framebuffer::Zero();
+    glutils::Shader m_featherAtlasResolveVertexShader;
+    glutils::Program m_featherAtlasClearProgram = glutils::Program::Zero();
+    glutils::Program m_featherAtlasResolveProgram = glutils::Program::Zero();
+    glutils::VAO m_featherAtlasResolveVAO;
+    glutils::Texture m_featherAtlasRenderTexture = glutils::Texture::Zero();
+    glutils::Texture m_featherAtlasTexture = glutils::Texture::Zero();
+    glutils::Framebuffer m_featherAtlasRenderFBO = glutils::Framebuffer::Zero();
+    glutils::Framebuffer m_featherAtlasResolveFBO =
+        glutils::Framebuffer::Zero();
 
     // Wraps a compiled GL "draw" shader, either vertex or fragment, with a
     // specific set of features enabled via #define. The set of features to
@@ -546,15 +549,10 @@ private:
     // getOrCreateCanvasMirror / blitMirrorIfRegistered above.
     struct CanvasMirrorEntry
     {
-        // Set in registerCanvasTarget. Identifies an entry as "this is a
-        // PLS canvas target". Source GLuint is the hash key, so it is
-        // implicit (not stored in the entry).
-
-        // Lazily allocated by getOrCreateCanvasMirror. Null until the
-        // first time this canvas is imported via Image:view().
-        // Non-owning — the mirror RiveRenderImage owns the GLuint and
-        // the wrapping rcp keeps it alive.
-        GLuint mirrorTex = 0;
+        // An entry exists for every PLS canvas target; the source GLuint is
+        // the hash key. Lazily allocated by getOrCreateCanvasMirror, owned
+        // here so repeat imports of one canvas share a single companion.
+        rcp<RiveRenderImage> mirrorImage;
         uint32_t width = 0;
         uint32_t height = 0;
 
@@ -563,13 +561,16 @@ private:
         // owning canvas is unregistered.
         GLuint readFBO = 0;
         GLuint drawFBO = 0;
-
-        // True iff a mirror has been allocated for this entry. The blit
-        // hook in flush() only fires when this is true.
-        bool hasMirror = false;
     };
     std::unordered_map<GLuint, CanvasMirrorEntry> m_canvasMirrors;
-    friend class CanvasMirrorTextureGLImpl;
+
+    // Canvas targets released off this context's thread, drained by flush.
+    std::mutex m_releasedCanvasTargetMutex;
+    std::vector<GLuint> m_releasedCanvasTargets;
+    std::atomic<bool> m_hasReleasedCanvasTargets{false};
+    const glutils::GLContextID m_glContext = glutils::CurrentContextID();
+
+    void drainReleasedCanvasTargets();
 #endif
 };
 } // namespace rive::gpu

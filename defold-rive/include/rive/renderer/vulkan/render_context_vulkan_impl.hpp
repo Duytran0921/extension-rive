@@ -99,8 +99,8 @@ public:
                                    VkFormat format);
 
 #ifdef RIVE_CANVAS
-    rcp<RenderCanvas> makeRenderCanvas(uint32_t width,
-                                       uint32_t height) override;
+    void ensureCanvasBacking(gpu::RenderCanvas* canvas) override;
+
     std::unique_ptr<rive::ore::Context> makeOreContext() override;
 #endif
 
@@ -120,8 +120,10 @@ public:
 private:
     RenderContextVulkanImpl(rcp<VulkanContext>, const ContextOptions&);
 
-    // Called outside the constructor so we can use virtual methods.
-    void initGPUObjects(ShaderCompilationMode);
+    // Returns false if the driver fails to create our objects.
+    // A driver that can't allocate our startup resources should fall back on
+    // another backend rather than abort the process.
+    bool initGPUObjects(ShaderCompilationMode);
 
     bool wantsManualRenderPassResolve(
         gpu::InterlockMode,
@@ -170,7 +172,6 @@ private:
     }
 
     IMPLEMENT_PLS_BUFFER(FlushUniformBuffer, m_flushUniformBuffer)
-    IMPLEMENT_PLS_BUFFER(ImageDrawUniformBuffer, m_imageDrawUniformBuffer)
     IMPLEMENT_PLS_STRUCTURED_BUFFER(PathBuffer, m_pathBuffer)
     IMPLEMENT_PLS_STRUCTURED_BUFFER(PaintBuffer, m_paintBuffer)
     IMPLEMENT_PLS_STRUCTURED_BUFFER(PaintAuxBuffer, m_paintAuxBuffer)
@@ -178,13 +179,14 @@ private:
     IMPLEMENT_PLS_BUFFER(GradSpanBuffer, m_gradSpanBuffer)
     IMPLEMENT_PLS_BUFFER(TessVertexSpanBuffer, m_tessSpanBuffer)
     IMPLEMENT_PLS_BUFFER(TriangleVertexBuffer, m_triangleBuffer)
+    IMPLEMENT_PLS_BUFFER(ImageDrawInstanceBuffer, m_imageDrawInstanceBuffer)
 
 #undef IMPLEMENT_PLS_BUFFER
 #undef IMPLEMENT_PLS_STRUCTURED_BUFFER
 
     void resizeGradientTexture(uint32_t width, uint32_t height) override;
     void resizeTessellationTexture(uint32_t width, uint32_t height) override;
-    void resizeAtlasTexture(uint32_t width, uint32_t height) override;
+    void resizeFeatherAtlasTexture(uint32_t width, uint32_t height) override;
     void resizeTransientPLSBacking(uint32_t width,
                                    uint32_t height,
                                    uint32_t planeCount) override;
@@ -393,7 +395,6 @@ private:
     // Rive buffer pools. These don't need to be rcp<> because the destructor of
     // RenderContextVulkanImpl is already synchronized.
     vkutil::BufferPool m_flushUniformBufferPool;
-    vkutil::BufferPool m_imageDrawUniformBufferPool;
     vkutil::BufferPool m_pathBufferPool;
     vkutil::BufferPool m_paintBufferPool;
     vkutil::BufferPool m_paintAuxBufferPool;
@@ -401,11 +402,11 @@ private:
     vkutil::BufferPool m_gradSpanBufferPool;
     vkutil::BufferPool m_tessSpanBufferPool;
     vkutil::BufferPool m_triangleBufferPool;
+    vkutil::BufferPool m_imageDrawInstanceBufferPool;
 
     // Specific Rive buffers that have been acquired for the current frame.
     // When the frame ends, these get recycled back in their respective pools.
     rcp<vkutil::Buffer> m_flushUniformBuffer;
-    rcp<vkutil::Buffer> m_imageDrawUniformBuffer;
     rcp<vkutil::Buffer> m_pathBuffer;
     rcp<vkutil::Buffer> m_paintBuffer;
     rcp<vkutil::Buffer> m_paintAuxBuffer;
@@ -413,6 +414,7 @@ private:
     rcp<vkutil::Buffer> m_gradSpanBuffer;
     rcp<vkutil::Buffer> m_tessSpanBuffer;
     rcp<vkutil::Buffer> m_triangleBuffer;
+    rcp<vkutil::Buffer> m_imageDrawInstanceBuffer;
 
     std::chrono::steady_clock::time_point m_localEpoch =
         std::chrono::steady_clock::now();
@@ -438,11 +440,11 @@ private:
     rcp<vkutil::Texture2D> m_tesselationSyncIssueWorkaroundTexture;
     rcp<vkutil::Framebuffer> m_tessTextureFramebuffer;
 
-    // Renders feathers to the atlas.
-    class AtlasPipeline;
-    std::unique_ptr<AtlasPipeline> m_atlasPipeline;
-    rcp<vkutil::Texture2D> m_atlasTexture;
-    rcp<vkutil::Framebuffer> m_atlasFramebuffer;
+    // Renders feathers to the feather atlas.
+    class FeatherAtlasPipeline;
+    std::unique_ptr<FeatherAtlasPipeline> m_featherAtlasPipeline;
+    rcp<vkutil::Texture2D> m_featherAtlasTexture;
+    rcp<vkutil::Framebuffer> m_featherAtlasFramebuffer;
 
     // Pixel local storage backing resources.
     VkImageUsageFlags m_plsTransientUsageFlags;
@@ -461,7 +463,7 @@ private:
     rcp<vkutil::Buffer> m_coverageBuffer;
 
     // Gaussian integral table for feathering.
-    rcp<vkutil::Texture2D> m_featherTexture;
+    rcp<vkutil::Texture2D> m_gaussianIntegralTexture;
 
     rcp<vkutil::Buffer> m_pathPatchVertexBuffer;
     rcp<vkutil::Buffer> m_pathPatchIndexBuffer;

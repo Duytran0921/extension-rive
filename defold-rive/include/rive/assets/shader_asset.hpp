@@ -33,10 +33,10 @@ class ShaderAsset : public ShaderAssetBase
 public:
     bool decode(SimpleArray<uint8_t>& data, Factory* factory) override
     {
-        return decode(Span<uint8_t>(data.data(), data.size()), factory);
+        return decode(Span<const uint8_t>(data.data(), data.size()), factory);
     }
 
-    bool decode(Span<uint8_t> data, Factory* factory);
+    bool decode(Span<const uint8_t> data, Factory* factory);
     std::string fileExtension() const override { return "rstb"; }
 
     /// Returns the blob for the given target, or an empty span if not present.
@@ -56,6 +56,13 @@ public:
     Span<const TextureSamplerPair> textureSamplerPairs() const
     {
         return Span<const TextureSamplerPair>(m_pairs.data(), m_pairs.size());
+    }
+
+    /// The decoded RSTB container, for hosts that forward it across a
+    /// process or module boundary.
+    Span<const uint8_t> rstb() const
+    {
+        return Span<const uint8_t>(m_bytes.data(), m_bytes.size());
     }
 
 private:

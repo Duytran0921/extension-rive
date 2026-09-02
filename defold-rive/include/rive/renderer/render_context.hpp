@@ -15,12 +15,13 @@
 #include "rive/renderer/shader_compilation_mode.hpp"
 #include "rive/renderer/sk_rectanizer_skyline.hpp"
 #include "rive/renderer/trivial_block_allocator.hpp"
+#include "rive/renderer/triangulation_controller.hpp"
 #include "rive/shapes/paint/color.hpp"
+#include <algorithm>
 #include <array>
-#include <optional>
 #include <unordered_map>
 
-class PushRetrofittedTrianglesGMDraw;
+class PushRetrofitTriStripsGMDraw;
 class RenderContextTest;
 
 namespace rive
@@ -105,18 +106,20 @@ public:
         LoadAction loadAction = LoadAction::clear;
         ColorInt clearColor = 0;
         // If nonzero, the number of MSAA samples to use.
-        // Setting this to a nonzero value forces msaa mode.
+        // Setting this to a nonzero value forces depthStencil mode.
         uint32_t msaaSampleCount = 0;
-        // Use atomic mode (preferred) or msaa instead of rasterOrdering.
+        // Use atomic mode (preferred) or depthStencil instead of
+        // rasterOrdering.
         bool disableRasterOrdering = false;
         DitherMode ditherMode = DitherMode::interleavedGradientNoise;
+        TriangulationThresholds triangulationThresholds;
 
         // If nonzero, frames are split up into virtual tiles of this size.
         //
         // As of now, each tile gets drawn in a separate render pass. The
         // purpose of these virtual tiles, for now, is to break the frame up
         // into smaller chunks so that Rive can be pre-empted by other rendering
-        // processes. This is only supported on Vulkan/non-msaa.
+        // processes. This is only supported on Vulkan/non-depthStencil.
         //
         // TODO: We could also explore a different type of virtual tiling that
         // reduces barriers in atomic mode, but that is not how this feature
@@ -147,6 +150,14 @@ public:
     // All rendering related calls must be made between beginFrame() and
     // flush().
     void beginFrame(const FrameDescriptor&);
+
+    // Decides which filled paths get an interior triangulation, under the
+    // budget in FrameDescriptor::triangulationThresholds. It is live-tuned
+    // across frames.
+    TriangulationController& triangulationController()
+    {
+        return m_triangulationController;
+    }
 
     const FrameDescriptor& frameDescriptor() const
     {
@@ -306,9 +317,17 @@ public:
     // Creates a RenderCanvas: a GPU texture usable as both a render target
     // (for rendering into) and a render image (for compositing into draws).
     rcp<RenderCanvas> makeRenderCanvas(uint32_t width, uint32_t height);
+
+    // Like makeRenderCanvas, but allocates nothing: whichever context ends up
+    // replaying the recording owns the pixels and backs it there.
+    rcp<RenderCanvas> makeDeferredRenderCanvas(uint32_t width, uint32_t height);
+
     rive::ore::Context* ore() override;
     rive::ore::Context* getOreContext() { return ore(); }
 #endif
+
+    // Importing straight through a render context routes scripts to it.
+    Factory* renderContext() override { return this; }
 
 private:
     friend class Draw;
@@ -316,18 +335,18 @@ private:
     friend class ImageRectDraw;
     friend class ImageMeshDraw;
     friend class ClipReset;
-    friend class ::PushRetrofittedTrianglesGMDraw; // For testing.
-    friend class ::RenderContextTest;              // For testing.
+    friend class ::PushRetrofitTriStripsGMDraw; // For testing.
+    friend class ::RenderContextTest;           // For testing.
 
     // Resets the CPU-side STL containers so they don't have unbounded growth.
     void resetContainers();
 
     // Throttled width/height of the atlas texture. If drawing to a render
     // target larger than this, we may create a larger atlas anyway.
-    uint32_t atlasMaxSize() const
+    uint32_t featherAtlasMaxSize() const
     {
-        constexpr static uint32_t MAX_ATLAS_MAX_SIZE = 4096;
-        return std::min(platformFeatures().maxTextureSize, MAX_ATLAS_MAX_SIZE);
+        constexpr static uint32_t FeatherAtlasMaxSize = 4096;
+        return std::min(platformFeatures().maxTextureSize, FeatherAtlasMaxSize);
     }
 
     // Defines the exact size of each of our GPU resources. Computed during
@@ -358,7 +377,6 @@ private:
         }
 
         size_t flushUniformBufferCount = 0;
-        size_t imageDrawUniformBufferCount = 0;
         size_t pathBufferCount = 0;
         size_t paintBufferCount = 0;
         size_t paintAuxBufferCount = 0;
@@ -366,10 +384,11 @@ private:
         size_t gradSpanBufferCount = 0;
         size_t tessSpanBufferCount = 0;
         size_t triangleVertexBufferCount = 0;
+        size_t imageDrawInstanceBufferCount = 0;
         size_t gradTextureHeight = 0;
         size_t tessTextureHeight = 0;
-        size_t atlasTextureWidth = 0;
-        size_t atlasTextureHeight = 0;
+        size_t featherAtlasTextureWidth = 0;
+        size_t featherAtlasTextureHeight = 0;
         size_t plsTransientBackingWidth = 0;
         size_t plsTransientBackingHeight = 0;
         size_t plsTransientBackingPlaneCount = 0;
@@ -401,6 +420,8 @@ private:
     ResourceAllocationCounts m_currentResourceAllocations;
     ResourceAllocationCounts m_maxRecentResourceRequirements;
     double m_lastResourceTrimTimeInSeconds;
+
+    TriangulationController m_triangulationController;
 
     // Per-frame state.
     FrameDescriptor m_frameDescriptor;
@@ -452,7 +473,7 @@ private:
     WriteOnlyMappedMemory<gpu::GradientSpan> m_gradSpanData;
     WriteOnlyMappedMemory<gpu::TessVertexSpan> m_tessSpanData;
     WriteOnlyMappedMemory<gpu::TriangleVertex> m_triangleVertexData;
-    WriteOnlyMappedMemory<gpu::ImageDrawUniforms> m_imageDrawUniformData;
+    WriteOnlyMappedMemory<gpu::ImageDrawInstance> m_imageDrawInstanceData;
 
     // Simple allocator for trivially-destructible data that needs to persist
     // until the current frame has completed. All memory in this allocator is
@@ -510,6 +531,10 @@ private:
         {
             return m_ctx->frameInterlockMode();
         }
+        const gpu::PlatformFeatures& platformFeatures() const
+        {
+            return m_ctx->platformFeatures();
+        }
 
         // Access this flush's gpu::FlushDescriptor (which is not valid until
         // layoutResources()). NOTE: Some fields in the FlushDescriptor
@@ -556,10 +581,7 @@ private:
             //
             // (Initialized with a maximally negative rectangle whose union with
             // any other rectangle will be equal to that same rectangle.)
-            AABBu16 readBounds = {std::numeric_limits<uint16_t>::max(),
-                                  std::numeric_limits<uint16_t>::max(),
-                                  std::numeric_limits<uint16_t>::min(),
-                                  std::numeric_limits<uint16_t>::min()};
+            AABBu16 readBounds = AABBu16::makeMaximallyNegative();
         };
 
         const ClipInfo& getClipInfo(uint32_t clipID)
@@ -620,8 +642,8 @@ private:
             uint32_t gradSpanPaddingCount = 0;
             uint32_t maxGradTextureHeight = 0;
             uint32_t maxTessTextureHeight = 0;
-            uint32_t maxAtlasWidth = 0;
-            uint32_t maxAtlasHeight = 0;
+            uint32_t maxFeatherAtlasWidth = 0;
+            uint32_t maxFeatherAtlasHeight = 0;
             uint32_t maxPLSTransientBackingPlaneCount = 0;
             size_t maxCoverageBufferLength = 0;
         };
@@ -639,20 +661,20 @@ private:
                                             gpu::ColorRampLocation*);
 
         // Allocates a rectangular region in the atlas for this draw to use, and
-        // registers a future callback to PathDraw::pushAtlasTessellation()
-        // where it will render its coverage data to this same region in the
-        // atlas.
+        // registers a future callback to
+        // PathDraw::pushFeatherAtlasTessellation() where it will render its
+        // coverage data to this same region in the atlas.
         //
         // Attempts to leave a border of "desiredPadding" pixels surrounding the
         // rectangular region, but the allocation may not be padded if the path
         // is up against an edge.
-        bool allocateAtlasDraw(PathDraw*,
-                               uint16_t drawWidth,
-                               uint16_t drawHeight,
-                               uint16_t desiredPadding,
-                               uint16_t* x,
-                               uint16_t* y,
-                               AABBu16* paddedRegion);
+        bool allocateFeatherAtlasDraw(PathDraw*,
+                                      uint16_t drawWidth,
+                                      uint16_t drawHeight,
+                                      uint16_t desiredPadding,
+                                      uint16_t* x,
+                                      uint16_t* y,
+                                      AABBu16* paddedRegion);
 
         // Reserves a range within the coverage buffer for a path to use in
         // clockwiseAtomic mode.
@@ -766,9 +788,9 @@ private:
             gpu::ShaderMiscFlags RIVE_DEBUG_CODE(, size_t* vertexCounter));
 
         // Pushes a screen-space rectangle to the draw list, whose pixel
-        // coverage is determined by the atlas region associated with the given
-        // pathID.
-        gpu::DrawBatch& pushAtlasBlit(PathDraw*, uint32_t pathID);
+        // coverage is determined by the feather atlas region associated with
+        // the given pathID.
+        gpu::DrawBatch& pushFeatherAtlasBlit(PathDraw*, uint32_t pathID);
 
         // Pushes an "imageRect" to the draw list.
         // This should only be used when we in atomic mode. Otherwise, images
@@ -882,10 +904,10 @@ private:
         uint32_t m_currentContourID;
 
         // Atlas for offscreen feathering.
-        std::unique_ptr<rive::RectanizerSkyline> m_atlasRectanizer;
-        uint32_t m_atlasMaxX = 0;
-        uint32_t m_atlasMaxY = 0;
-        std::vector<PathDraw*> m_pendingAtlasDraws;
+        std::unique_ptr<rive::RectanizerSkyline> m_featherAtlasRectanizer;
+        uint32_t m_featherAtlasMaxX = 0;
+        uint32_t m_featherAtlasMaxY = 0;
+        std::vector<PathDraw*> m_pendingFeatherAtlasDraws;
 
         // Total coverage allocated via allocateCoverageBufferRange().
         // (clockwiseAtomic mode only.)
@@ -896,8 +918,9 @@ private:
         // prevents DrawBatches from being combined with the existing drawList.
         BarrierFlags m_pendingBarriers;
 
-        // Stateful Z index of the current draw being pushed. Used by msaa mode
-        // to avoid double hits and to reverse-sort opaque paths front to back.
+        // Stateful Z index of the current draw being pushed. Used by
+        // depthStencil mode to avoid double hits and to reverse-sort opaque
+        // paths front to back.
         uint32_t m_currentZIndex;
 
         RIVE_DEBUG_CODE(bool m_hasDoneLayout = false;)
@@ -983,6 +1006,11 @@ private:
                        uint32_t polarSegmentCount,
                        uint32_t joinSegmentCount,
                        uint32_t contourIDWithFlags);
+
+        void pushRetrofitCubicTriStrip(const Vec2D[],
+                                       size_t numPts,
+                                       gpu::ContourDirections,
+                                       uint32_t contourIDWithFlags);
 
         // pushCubic() impl for forward tessellations.
         RIVE_ALWAYS_INLINE void pushTessellationSpans(

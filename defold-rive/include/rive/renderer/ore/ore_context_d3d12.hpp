@@ -44,6 +44,12 @@ public:
     void endFrame() override;
     void waitForGPU() override;
 
+    // Frame numbers from the host, used by BufferD3D12 to version backings:
+    // a backing bound in `currentFrameNumber` is reclaimable once
+    // `safeFrameNumber` reaches it.
+    uint64_t currentFrameNumber() const { return m_currentFrameNumber; }
+    uint64_t safeFrameNumber() const { return m_safeFrameNumber; }
+
     rcp<TextureView> wrapCanvasTexture(gpu::RenderCanvas* canvas) override;
     rcp<TextureView> wrapRiveTexture(gpu::Texture* gpuTex,
                                      uint32_t width,
@@ -58,6 +64,7 @@ private:
     friend class RenderPassD3D12;
     friend class BindGroupD3D12;
     friend class TextureD3D12;
+    friend class BufferD3D12;
 
     ContextD3D12(rcp<rive::gpu::GPUResourceManager> manager) :
         Context(std::move(manager))
@@ -65,6 +72,12 @@ private:
 
     // D3D12 implementation helpers — defined in ore_context_d3d12.cpp.
     rcp<Buffer> d3d12MakeBuffer(const BufferDesc& desc);
+    // Create + persistently map one UPLOAD-heap backing of exactly
+    // `alignedSize` bytes. Shared by buffer creation and orphan-on-bound.
+    bool d3d12AllocBufferBacking(
+        UINT64 alignedSize,
+        Microsoft::WRL::ComPtr<ID3D12Resource>& outResource,
+        void** outMapped);
     rcp<Texture> d3d12MakeTexture(const TextureDesc& desc);
     rcp<TextureView> d3d12MakeTextureView(const TextureViewDesc& desc);
     rcp<Sampler> d3d12MakeSampler(const SamplerDesc& desc);
@@ -81,6 +94,21 @@ private:
                                           uint32_t w,
                                           uint32_t h);
 
+    // Recording a copy directly would land on the host command list even while
+    // it is closed between frames, so uploads stage here until one is live.
+    struct D3D12PendingTextureUpload
+    {
+        rcp<Texture> texture;
+        rcp<Buffer> staging;
+        D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
+        UINT subresource;
+        UINT dstX;
+        UINT dstY;
+        UINT dstZ;
+    };
+    void d3d12QueuePendingTextureUpload(D3D12PendingTextureUpload pending);
+    void d3d12FlushPendingTextureUploads();
+
     Microsoft::WRL::ComPtr<ID3D12Device> m_d3dDevice;
     // Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_d3dQueue;
     //  Active command list for the current frame. Points at m_d3dOwnedCmdList
@@ -88,6 +116,8 @@ private:
     //  mode. All recording code reads through this pointer, so the two modes
     //  share one code path.
     ID3D12GraphicsCommandList* m_d3dCmdList = nullptr;
+    // Drained at the next beginFrame or beginRenderPass.
+    std::vector<D3D12PendingTextureUpload> m_d3dPendingUploads;
     // resource-creation time.
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_d3dCpuSrvHeap;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_d3dCpuRtvHeap;
@@ -109,6 +139,9 @@ private:
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_d3dGpuSamplerHeap;
     UINT m_d3dGpuSrvAllocated = 0;
     UINT m_d3dGpuSamplerAllocated = 0;
+    // Host frame numbers captured at beginFrame for backing reclamation.
+    uint64_t m_currentFrameNumber = 0;
+    uint64_t m_safeFrameNumber = 0;
     // Helpers called by RenderPass to allocate and resolve descriptor handles.
     UINT d3d12AllocGpuSrvSlots(UINT count);
     UINT d3d12AllocGpuSamplerSlots(UINT count);

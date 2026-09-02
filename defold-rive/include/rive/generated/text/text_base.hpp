@@ -2,8 +2,13 @@
 #define _RIVE_TEXT_BASE_HPP_
 #include "rive/core/field_types/core_bool_type.hpp"
 #include "rive/core/field_types/core_double_type.hpp"
+#include "rive/core/field_types/core_id_type.hpp"
 #include "rive/core/field_types/core_uint_type.hpp"
+#include "rive/core/id.hpp"
 #include "rive/drawable.hpp"
+#ifdef WITH_RIVE_EDITOR
+#include "editor_native/generated/editor_field_types.hpp"
+#endif
 namespace rive
 {
 class TextBase : public Drawable
@@ -48,6 +53,13 @@ public:
     static const uint16_t verticalAlignValuePropertyKey = 685;
     static const uint16_t fitFromBaselinePropertyKey = 703;
     static const uint16_t textRunListSourcePropertyKey = 932;
+    static const uint16_t verticalTrimValuePropertyKey = 1026;
+    static const uint16_t verticalTrimTopValuePropertyKey = 1027;
+    static const uint32_t verticalTrimTopValueBitOffset = 0;
+    static const uint32_t verticalTrimTopValueFieldMask = 255u;
+    static const uint16_t verticalTrimBottomValuePropertyKey = 1028;
+    static const uint32_t verticalTrimBottomValueBitOffset = 8;
+    static const uint32_t verticalTrimBottomValueFieldMask = 65280u;
 
 protected:
     uint32_t m_AlignValue = 0;
@@ -62,7 +74,8 @@ protected:
     uint32_t m_WrapValue = 0;
     uint32_t m_VerticalAlignValue = 0;
     bool m_FitFromBaseline = true;
-    uint32_t m_TextRunListSource = -1;
+    Id m_TextRunListSource = kEmptyId;
+    uint32_t m_VerticalTrimValue = 0;
 
 public:
     inline uint32_t alignValue() const { return m_AlignValue; }
@@ -72,8 +85,10 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(alignValuePropertyKey, &m_AlignValue, &value);
         m_AlignValue = value;
-        alignValueChanged();
+        RIVE_EDITOR_CHANGED(alignValueChanged());
+        notifyPropertyChanged(alignValuePropertyKey);
     }
 
     inline uint32_t sizingValue() const { return m_SizingValue; }
@@ -83,8 +98,10 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(sizingValuePropertyKey, &m_SizingValue, &value);
         m_SizingValue = value;
-        sizingValueChanged();
+        RIVE_EDITOR_CHANGED(sizingValueChanged());
+        notifyPropertyChanged(sizingValuePropertyKey);
     }
 
     inline uint32_t overflowValue() const { return m_OverflowValue; }
@@ -94,8 +111,12 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(overflowValuePropertyKey,
+                             &m_OverflowValue,
+                             &value);
         m_OverflowValue = value;
-        overflowValueChanged();
+        RIVE_EDITOR_CHANGED(overflowValueChanged());
+        notifyPropertyChanged(overflowValuePropertyKey);
     }
 
     inline float width() const { return m_Width; }
@@ -105,8 +126,10 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(widthPropertyKey, &m_Width, &value);
         m_Width = value;
-        widthChanged();
+        RIVE_EDITOR_CHANGED(widthChanged());
+        notifyPropertyChanged(widthPropertyKey);
     }
 
     inline float height() const { return m_Height; }
@@ -116,8 +139,10 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(heightPropertyKey, &m_Height, &value);
         m_Height = value;
-        heightChanged();
+        RIVE_EDITOR_CHANGED(heightChanged());
+        notifyPropertyChanged(heightPropertyKey);
     }
 
     inline float originX() const { return m_OriginX; }
@@ -127,8 +152,10 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(originXPropertyKey, &m_OriginX, &value);
         m_OriginX = value;
-        originXChanged();
+        RIVE_EDITOR_CHANGED(originXChanged());
+        notifyPropertyChanged(originXPropertyKey);
     }
 
     inline float originY() const { return m_OriginY; }
@@ -138,8 +165,10 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(originYPropertyKey, &m_OriginY, &value);
         m_OriginY = value;
-        originYChanged();
+        RIVE_EDITOR_CHANGED(originYChanged());
+        notifyPropertyChanged(originYPropertyKey);
     }
 
     inline float paragraphSpacing() const { return m_ParagraphSpacing; }
@@ -149,8 +178,12 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(paragraphSpacingPropertyKey,
+                             &m_ParagraphSpacing,
+                             &value);
         m_ParagraphSpacing = value;
-        paragraphSpacingChanged();
+        RIVE_EDITOR_CHANGED(paragraphSpacingChanged());
+        notifyPropertyChanged(paragraphSpacingPropertyKey);
     }
 
     inline uint32_t originValue() const { return m_OriginValue; }
@@ -160,8 +193,10 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(originValuePropertyKey, &m_OriginValue, &value);
         m_OriginValue = value;
-        originValueChanged();
+        RIVE_EDITOR_CHANGED(originValueChanged());
+        notifyPropertyChanged(originValuePropertyKey);
     }
 
     inline uint32_t wrapValue() const { return m_WrapValue; }
@@ -171,8 +206,10 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(wrapValuePropertyKey, &m_WrapValue, &value);
         m_WrapValue = value;
-        wrapValueChanged();
+        RIVE_EDITOR_CHANGED(wrapValueChanged());
+        notifyPropertyChanged(wrapValuePropertyKey);
     }
 
     inline uint32_t verticalAlignValue() const { return m_VerticalAlignValue; }
@@ -182,8 +219,12 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(verticalAlignValuePropertyKey,
+                             &m_VerticalAlignValue,
+                             &value);
         m_VerticalAlignValue = value;
-        verticalAlignValueChanged();
+        RIVE_EDITOR_CHANGED(verticalAlignValueChanged());
+        notifyPropertyChanged(verticalAlignValuePropertyKey);
     }
 
     inline bool fitFromBaseline() const { return m_FitFromBaseline; }
@@ -193,21 +234,88 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(fitFromBaselinePropertyKey,
+                             &m_FitFromBaseline,
+                             &value);
         m_FitFromBaseline = value;
-        fitFromBaselineChanged();
+        RIVE_EDITOR_CHANGED(fitFromBaselineChanged());
+        notifyPropertyChanged(fitFromBaselinePropertyKey);
     }
 
-    inline uint32_t textRunListSource() const { return m_TextRunListSource; }
-    void textRunListSource(uint32_t value)
+    inline Id textRunListSource() const { return m_TextRunListSource; }
+    void textRunListSource(Id value)
     {
         if (m_TextRunListSource == value)
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(textRunListSourcePropertyKey,
+                             &m_TextRunListSource,
+                             &value);
         m_TextRunListSource = value;
-        textRunListSourceChanged();
+        RIVE_EDITOR_CHANGED(textRunListSourceChanged());
+        notifyPropertyChanged(textRunListSourcePropertyKey);
     }
 
+    inline uint32_t verticalTrimValue() const { return m_VerticalTrimValue; }
+    void verticalTrimValue(uint32_t value)
+    {
+        if (m_VerticalTrimValue == value)
+        {
+            return;
+        }
+        RIVE_EDITOR_CHANGING(verticalTrimValuePropertyKey,
+                             &m_VerticalTrimValue,
+                             &value);
+        m_VerticalTrimValue = value;
+        RIVE_EDITOR_CHANGED(verticalTrimValueChanged());
+        notifyPropertyChanged(verticalTrimValuePropertyKey);
+    }
+
+    inline uint32_t verticalTrimTopValue() const
+    {
+        return (m_VerticalTrimValue & verticalTrimTopValueFieldMask) >>
+               verticalTrimTopValueBitOffset;
+    }
+    void verticalTrimTopValue(uint32_t value)
+    {
+        const uint32_t prev =
+            (m_VerticalTrimValue & verticalTrimTopValueFieldMask) >>
+            verticalTrimTopValueBitOffset;
+        if (prev == value)
+        {
+            return;
+        }
+        RIVE_EDITOR_CHANGING(verticalTrimTopValuePropertyKey, &prev, &value);
+        m_VerticalTrimValue =
+            (m_VerticalTrimValue & ~verticalTrimTopValueFieldMask) |
+            ((value << verticalTrimTopValueBitOffset) &
+             verticalTrimTopValueFieldMask);
+        RIVE_EDITOR_CHANGED(verticalTrimValueChanged());
+        notifyPropertyChanged(verticalTrimValuePropertyKey);
+    }
+    inline uint32_t verticalTrimBottomValue() const
+    {
+        return (m_VerticalTrimValue & verticalTrimBottomValueFieldMask) >>
+               verticalTrimBottomValueBitOffset;
+    }
+    void verticalTrimBottomValue(uint32_t value)
+    {
+        const uint32_t prev =
+            (m_VerticalTrimValue & verticalTrimBottomValueFieldMask) >>
+            verticalTrimBottomValueBitOffset;
+        if (prev == value)
+        {
+            return;
+        }
+        RIVE_EDITOR_CHANGING(verticalTrimBottomValuePropertyKey, &prev, &value);
+        m_VerticalTrimValue =
+            (m_VerticalTrimValue & ~verticalTrimBottomValueFieldMask) |
+            ((value << verticalTrimBottomValueBitOffset) &
+             verticalTrimBottomValueFieldMask);
+        RIVE_EDITOR_CHANGED(verticalTrimValueChanged());
+        notifyPropertyChanged(verticalTrimValuePropertyKey);
+    }
     Core* clone() const override;
     void copy(const TextBase& object)
     {
@@ -224,6 +332,8 @@ public:
         m_VerticalAlignValue = object.m_VerticalAlignValue;
         m_FitFromBaseline = object.m_FitFromBaseline;
         m_TextRunListSource = object.m_TextRunListSource;
+        m_VerticalTrimValue = object.m_VerticalTrimValue;
+        RIVE_EDITOR_COPY(object);
         Drawable::copy(object);
     }
 
@@ -268,9 +378,13 @@ public:
                 m_FitFromBaseline = CoreBoolType::deserialize(reader);
                 return true;
             case textRunListSourcePropertyKey:
-                m_TextRunListSource = CoreUintType::deserialize(reader);
+                m_TextRunListSource = CoreIdType::runtimeDeserialize(reader);
+                return true;
+            case verticalTrimValuePropertyKey:
+                m_VerticalTrimValue = CoreUintType::deserialize(reader);
                 return true;
         }
+        RIVE_EDITOR_DESERIALIZE(propertyKey, reader);
         return Drawable::deserialize(propertyKey, reader);
     }
 
@@ -288,6 +402,10 @@ protected:
     virtual void verticalAlignValueChanged() {}
     virtual void fitFromBaselineChanged() {}
     virtual void textRunListSourceChanged() {}
+    virtual void verticalTrimValueChanged() {}
+#ifdef WITH_RIVE_EDITOR
+#include "editor_native/generated/text/text_ext.inl"
+#endif
 };
 } // namespace rive
 

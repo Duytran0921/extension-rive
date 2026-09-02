@@ -17,22 +17,22 @@ class ScriptedDataConverter : public ScriptedDataConverterBase,
 private:
     rcp<DataContext> m_dataContext = nullptr;
     DataValue* m_dataValue = nullptr;
-    template <typename T = DataValue> void storeData(DataValue* input)
+    template <typename T, typename V> void storeData(V value)
     {
         if (m_dataValue && !m_dataValue->is<T>())
         {
             delete m_dataValue;
+            m_dataValue = nullptr;
         }
         if (!m_dataValue)
         {
             m_dataValue = new T();
         }
-        m_dataValue->as<T>()->value(input->as<T>()->value());
+        m_dataValue->as<T>()->value(value);
     };
     virtual void disposeScriptInputs() override;
 #ifdef WITH_RIVE_SCRIPTING
     DataValue* applyConversion(DataValue* value, const std::string& method);
-    bool pushDataValue(DataValue*);
 #endif
 
 public:

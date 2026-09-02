@@ -6,6 +6,7 @@
 
 #include "rive/command_queue.hpp"
 #include "rive/hit_result.hpp"
+#include "rive/math/mat2d.hpp"
 #include <iostream>
 #include <sstream>
 #include <thread>
@@ -38,6 +39,7 @@ public:
     RenderImage* getImage(RenderImageHandle) const;
     AudioSource* getAudioSource(AudioSourceHandle) const;
     Font* getFont(FontHandle) const;
+    BlobAsset* getBlob(BlobAssetHandle) const;
     ArtboardInstance* getArtboardInstance(ArtboardHandle) const;
     rcp<BindableArtboard> getBindableArtboard(ArtboardHandle) const;
     StateMachineInstance* getStateMachineInstance(StateMachineHandle) const;
@@ -93,6 +95,9 @@ public:
     }
 #endif
 #endif
+
+    bool focusNextSynchronized(StateMachineHandle);
+    bool focusPreviousSynchronized(StateMachineHandle);
 
 private:
     friend class CommandQueue;
@@ -184,23 +189,18 @@ private:
 
     struct SynchronizedStateMachine : RefCnt<SynchronizedStateMachine>
     {
-        // kept in seperate header to avoid including StateMachineInstance in
-        // the main CommandServer header
+        // Kept out of line to avoid including StateMachineInstance in the main
+        // CommandServer header.
         ~SynchronizedStateMachine();
-        SynchronizedStateMachine& operator=(SynchronizedStateMachine&& other)
-        {
-            instance = std::move(other.instance);
-            return *this;
-        }
+        SynchronizedStateMachine& operator=(SynchronizedStateMachine&& other);
         SynchronizedStateMachine() = default;
         SynchronizedStateMachine(
-            std::unique_ptr<StateMachineInstance> instance) :
-            instance(std::move(instance))
-        {}
+            std::unique_ptr<StateMachineInstance> instance);
         std::unique_ptr<StateMachineInstance> instance;
-        // This mutex is used to ensure that a specific state machine instance
-        // is not being advanced at the same time a sync mouse event is being
-        // processed.
+        Mat2D m_lastSemanticsTransform;
+        bool m_hasLastSemanticsTransform = false;
+        // This mutex ensures that a specific state machine instance is not
+        // advanced while a synchronized input or focus operation is running.
         std::mutex m_mutex;
     };
 
@@ -237,6 +237,7 @@ private:
     std::unordered_map<FileHandle, rcp<File>> m_files;
     std::unordered_map<FontHandle, rcp<Font>> m_fonts;
     std::unordered_map<RenderImageHandle, rcp<RenderImage>> m_images;
+    std::unordered_map<BlobAssetHandle, rcp<BlobAsset>> m_blobs;
     std::unordered_map<AudioSourceHandle, rcp<AudioSource>> m_audioSources;
     std::unordered_map<ArtboardHandle, rcp<BindableArtboard>> m_artboards;
     std::unordered_map<ViewModelInstanceHandle, rcp<ViewModelInstanceRuntime>>

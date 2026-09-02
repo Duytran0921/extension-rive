@@ -45,8 +45,10 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(keyTypePropertyKey, &m_KeyType, &value);
         m_KeyType = value;
-        keyTypeChanged();
+        RIVE_EDITOR_CHANGED(keyTypeChanged());
+        notifyPropertyChanged(keyTypePropertyKey);
     }
 
     inline uint32_t keyPhase() const { return m_KeyPhase; }
@@ -56,8 +58,10 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(keyPhasePropertyKey, &m_KeyPhase, &value);
         m_KeyPhase = value;
-        keyPhaseChanged();
+        RIVE_EDITOR_CHANGED(keyPhaseChanged());
+        notifyPropertyChanged(keyPhasePropertyKey);
     }
 
     inline uint32_t modifiers() const { return m_Modifiers; }
@@ -67,8 +71,10 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(modifiersPropertyKey, &m_Modifiers, &value);
         m_Modifiers = value;
-        modifiersChanged();
+        RIVE_EDITOR_CHANGED(modifiersChanged());
+        notifyPropertyChanged(modifiersPropertyKey);
     }
 
     Core* clone() const override;
@@ -101,6 +107,9 @@ protected:
     virtual void keyTypeChanged() {}
     virtual void keyPhaseChanged() {}
     virtual void modifiersChanged() {}
+#ifdef WITH_RIVE_EDITOR
+#include "editor_native/generated/inputs/keyboard_input_ext.inl"
+#endif
 };
 } // namespace rive
 

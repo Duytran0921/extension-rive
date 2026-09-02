@@ -47,8 +47,10 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(rotationPropertyKey, &m_Rotation, &value);
         m_Rotation = value;
-        rotationChanged();
+        RIVE_EDITOR_CHANGED(rotationChanged());
+        notifyPropertyChanged(rotationPropertyKey);
     }
 
     inline float scaleX() const { return m_ScaleX; }
@@ -58,8 +60,10 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(scaleXPropertyKey, &m_ScaleX, &value);
         m_ScaleX = value;
-        scaleXChanged();
+        RIVE_EDITOR_CHANGED(scaleXChanged());
+        notifyPropertyChanged(scaleXPropertyKey);
     }
 
     inline float scaleY() const { return m_ScaleY; }
@@ -69,8 +73,10 @@ public:
         {
             return;
         }
+        RIVE_EDITOR_CHANGING(scaleYPropertyKey, &m_ScaleY, &value);
         m_ScaleY = value;
-        scaleYChanged();
+        RIVE_EDITOR_CHANGED(scaleYChanged());
+        notifyPropertyChanged(scaleYPropertyKey);
     }
 
     void copy(const TransformComponentBase& object)
@@ -102,6 +108,9 @@ protected:
     virtual void rotationChanged() {}
     virtual void scaleXChanged() {}
     virtual void scaleYChanged() {}
+#ifdef WITH_RIVE_EDITOR
+#include "editor_native/generated/transform_component_ext.inl"
+#endif
 };
 } // namespace rive
 
