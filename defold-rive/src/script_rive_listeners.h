@@ -118,11 +118,38 @@ private:
 class StateMachineListener : public rive::CommandQueue::StateMachineListener
 {
 public:
+    StateMachineListener();
+    ~StateMachineListener();
+
+    // Whether this state machine has settled (onStateMachineSettled fired,
+    // and nothing has cleared it since) - comp_rive.cpp skips
+    // advanceStateMachine() for one where this is true, instead of calling
+    // it unconditionally for every live component every frame regardless of
+    // whether it has anything left to do. See RIVE_BOARD_CPU_HEAT memory:
+    // that unconditional call was most of a board's CPU/thermal cost.
+    //
+    // Thread-safe: onStateMachineSettled fires from the CommandQueue's
+    // worker thread (game.project [rive] use_threads=1); IsSettled/
+    // ClearSettled are called from the main/update thread.
+    bool IsSettled(rive::StateMachineHandle handle) const;
+    void ClearSettled(rive::StateMachineHandle handle);
+
     virtual void onStateMachineError(const rive::StateMachineHandle, uint64_t requestId, std::string error) override;
     virtual void onStateMachineDeleted(const rive::StateMachineHandle, uint64_t requestId) override;
     virtual void onStateMachineSettled(const rive::StateMachineHandle, uint64_t requestId) override;
     dmScript::LuaCallbackInfo* m_Callback;
+private:
+    dmMutex::HMutex m_Mutex;
+    dmHashTable<uintptr_t, uint8_t> m_Settled;
 };
+
+// The single global StateMachineListener - see script_rive.cpp, registered
+// once via queue->setGlobalStateMachineListener. Exposed here so comp_rive.cpp
+// can query/clear settled state without a second registry.
+extern StateMachineListener g_StateMachineListener;
+
+bool IsStateMachineSettled(rive::StateMachineHandle handle);
+void ClearStateMachineSettled(rive::StateMachineHandle handle);
 
 void RequestViewModelInstanceProperties(rive::FileHandle file, rive::ViewModelInstanceHandle instance, const char* viewmodel_name);
 void RequestDefaultViewModelInstanceProperties(rive::FileHandle file, rive::ArtboardHandle artboard, rive::ViewModelInstanceHandle instance);
