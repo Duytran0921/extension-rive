@@ -919,17 +919,93 @@ void ViewModelInstanceListener::onViewModelListCleared(const rive::ViewModelInst
 
 // ******************************************************************************************************************************
 
+StateMachineListener::StateMachineListener()
+    : m_Callback(0)
+    , m_Mutex(dmMutex::New())
+{
+}
+
+StateMachineListener::~StateMachineListener()
+{
+    if (m_Mutex)
+    {
+        dmMutex::Delete(m_Mutex);
+        m_Mutex = 0;
+    }
+}
+
+bool StateMachineListener::IsSettled(rive::StateMachineHandle handle) const
+{
+    DM_MUTEX_OPTIONAL_SCOPED_LOCK(m_Mutex);
+    // Capacity 0 means nothing has ever settled yet (onStateMachineSettled,
+    // the only place that grows this table, hasn't fired) - Get() on a
+    // never-grown dmHashTable is as unsafe as Erase() below, same as
+    // m_PropertyValues/m_ListSizes above guard for the same reason.
+    if (m_Settled.Capacity() == 0)
+    {
+        return false;
+    }
+    return m_Settled.Get((uintptr_t)handle) != 0;
+}
+
+void StateMachineListener::ClearSettled(rive::StateMachineHandle handle)
+{
+    DM_MUTEX_OPTIONAL_SCOPED_LOCK(m_Mutex);
+    // dmHashTable::Erase() asserts twice over, both found the hard way by
+    // crashing the whole engine: once if the table was never grown at all
+    // (m_HashTableSize != 0), and again if the specific key was never Put
+    // (entry_ptr != INVALID_INDEX - it does not tolerate erasing an absent
+    // key, unlike most hash table APIs). ClearSettled is called
+    // unconditionally and often - every rive.wake() call, every pointer
+    // action, every freshly spawned component - and the overwhelming
+    // majority of the time the handle was never marked settled to begin
+    // with, so both guards are load-bearing, not just the first one.
+    if (m_Settled.Capacity() == 0)
+    {
+        return;
+    }
+    if (m_Settled.Get((uintptr_t)handle) == 0)
+    {
+        return;
+    }
+    m_Settled.Erase((uintptr_t)handle);
+}
+
 void StateMachineListener::onStateMachineError(const rive::StateMachineHandle, uint64_t requestId, std::string error)
 {
 
 }
-void StateMachineListener::onStateMachineDeleted(const rive::StateMachineHandle, uint64_t requestId)
+void StateMachineListener::onStateMachineDeleted(const rive::StateMachineHandle handle, uint64_t requestId)
 {
-
+    // A deleted handle's value could in principle be reused by a later
+    // instantiateStateMachineNamed/instantiateDefaultStateMachine call - a
+    // stale "settled" entry surviving that would wrongly skip advancing a
+    // brand new state machine from the moment it's created. Cheap to clear
+    // unconditionally, so no reason to leave it in doubt.
+    ClearSettled(handle);
 }
-void StateMachineListener::onStateMachineSettled(const rive::StateMachineHandle, uint64_t requestId)
+void StateMachineListener::onStateMachineSettled(const rive::StateMachineHandle handle, uint64_t requestId)
 {
+    DM_MUTEX_OPTIONAL_SCOPED_LOCK(m_Mutex);
+    if (m_Settled.Capacity() == 0)
+    {
+        m_Settled.OffsetCapacity(64);
+    }
+    else if (m_Settled.Full())
+    {
+        m_Settled.OffsetCapacity(m_Settled.Capacity());
+    }
+    m_Settled.Put((uintptr_t)handle, 1);
+}
 
+bool IsStateMachineSettled(rive::StateMachineHandle handle)
+{
+    return g_StateMachineListener.IsSettled(handle);
+}
+
+void ClearStateMachineSettled(rive::StateMachineHandle handle)
+{
+    g_StateMachineListener.ClearSettled(handle);
 }
 
 } // namespace dmRive
