@@ -127,7 +127,7 @@ static int Script_PointerExit(lua_State* L)
 /**
  * Wakes a component's state machine back up so it resumes being advanced
  * every frame, undoing whatever marked it settled (onStateMachineSettled).
- * Call this before a cmd.setViewModelInstance*/cmd.fireViewModelTrigger
+ * Call this before a cmd.setViewModelInstanceX or cmd.fireViewModelTrigger
  * write that should make the component do something again: those writes
  * are only actually processed the next time the state machine is advanced,
  * and a settled one has stopped being advanced (see comp_rive.cpp's update
