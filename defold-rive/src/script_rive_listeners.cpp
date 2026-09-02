@@ -919,17 +919,68 @@ void ViewModelInstanceListener::onViewModelListCleared(const rive::ViewModelInst
 
 // ******************************************************************************************************************************
 
+StateMachineListener::StateMachineListener()
+    : m_Callback(0)
+    , m_Mutex(dmMutex::New())
+{
+}
+
+StateMachineListener::~StateMachineListener()
+{
+    if (m_Mutex)
+    {
+        dmMutex::Delete(m_Mutex);
+        m_Mutex = 0;
+    }
+}
+
+bool StateMachineListener::IsSettled(rive::StateMachineHandle handle) const
+{
+    DM_MUTEX_OPTIONAL_SCOPED_LOCK(m_Mutex);
+    return m_Settled.Get((uintptr_t)handle) != 0;
+}
+
+void StateMachineListener::ClearSettled(rive::StateMachineHandle handle)
+{
+    DM_MUTEX_OPTIONAL_SCOPED_LOCK(m_Mutex);
+    m_Settled.Erase((uintptr_t)handle);
+}
+
 void StateMachineListener::onStateMachineError(const rive::StateMachineHandle, uint64_t requestId, std::string error)
 {
 
 }
-void StateMachineListener::onStateMachineDeleted(const rive::StateMachineHandle, uint64_t requestId)
+void StateMachineListener::onStateMachineDeleted(const rive::StateMachineHandle handle, uint64_t requestId)
 {
-
+    // A deleted handle's value could in principle be reused by a later
+    // instantiateStateMachineNamed/instantiateDefaultStateMachine call - a
+    // stale "settled" entry surviving that would wrongly skip advancing a
+    // brand new state machine from the moment it's created. Cheap to clear
+    // unconditionally, so no reason to leave it in doubt.
+    ClearSettled(handle);
 }
-void StateMachineListener::onStateMachineSettled(const rive::StateMachineHandle, uint64_t requestId)
+void StateMachineListener::onStateMachineSettled(const rive::StateMachineHandle handle, uint64_t requestId)
 {
+    DM_MUTEX_OPTIONAL_SCOPED_LOCK(m_Mutex);
+    if (m_Settled.Capacity() == 0)
+    {
+        m_Settled.OffsetCapacity(64);
+    }
+    else if (m_Settled.Full())
+    {
+        m_Settled.OffsetCapacity(m_Settled.Capacity());
+    }
+    m_Settled.Put((uintptr_t)handle, 1);
+}
 
+bool IsStateMachineSettled(rive::StateMachineHandle handle)
+{
+    return g_StateMachineListener.IsSettled(handle);
+}
+
+void ClearStateMachineSettled(rive::StateMachineHandle handle)
+{
+    g_StateMachineListener.ClearSettled(handle);
 }
 
 } // namespace dmRive
