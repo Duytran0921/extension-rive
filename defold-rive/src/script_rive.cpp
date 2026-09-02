@@ -125,6 +125,30 @@ static int Script_PointerExit(lua_State* L)
 }
 
 /**
+ * Wakes a component's state machine back up so it resumes being advanced
+ * every frame, undoing whatever marked it settled (onStateMachineSettled).
+ * Call this before a cmd.setViewModelInstance*/cmd.fireViewModelTrigger
+ * write that should make the component do something again: those writes
+ * are only actually processed the next time the state machine is advanced,
+ * and a settled one has stopped being advanced (see comp_rive.cpp's update
+ * loop) - so without this, a write to an already-settled component would
+ * sit queued and never take visible effect.
+ *
+ * Pointer input and cmd.setArtboard/setStateMachine already wake on their
+ * own; this is only needed around a bare view model write or trigger fire.
+ * @name rive.wake(component)
+ * @param url [type: url] Component whose state machine should resume being advanced.
+ */
+static int Script_Wake(lua_State* L)
+{
+    DM_LUA_STACK_CHECK(L, 0);
+    RiveComponent* component = 0;
+    dmScript::GetComponentFromLua(L, 1, dmRive::RIVE_MODEL_EXT, 0, (void**)&component, 0);
+    ClearStateMachineSettled(CompRiveGetStateMachine(component));
+    return 0;
+}
+
+/**
  * Returns the projection matrix in render coordinates.
  * @name rive.get_projection_matrix()
  * @return matrix [type: vmath.matrix4] Current projection matrix for the window.
@@ -506,6 +530,7 @@ static const luaL_reg RIVE_FUNCTIONS[] =
     {"pointer_up",              Script_PointerUp},
     {"pointer_down",            Script_PointerDown},
     {"pointer_exit",            Script_PointerExit},
+    {"wake",                    Script_Wake},
     {"get_projection_matrix",   Script_GetProjectionMatrix},
 
     {"set_file_listener",               Script_SetFileListener},
