@@ -306,6 +306,7 @@
 #include "rive/viewmodel/viewmodel_instance.hpp"
 #include "rive/viewmodel/viewmodel_instance_artboard.hpp"
 #include "rive/viewmodel/viewmodel_instance_asset.hpp"
+#include "rive/viewmodel/viewmodel_instance_asset_font.hpp"
 #include "rive/viewmodel/viewmodel_instance_asset_image.hpp"
 #include "rive/viewmodel/viewmodel_instance_boolean.hpp"
 #include "rive/viewmodel/viewmodel_instance_color.hpp"
@@ -322,6 +323,7 @@
 #include "rive/viewmodel/viewmodel_property.hpp"
 #include "rive/viewmodel/viewmodel_property_artboard.hpp"
 #include "rive/viewmodel/viewmodel_property_asset.hpp"
+#include "rive/viewmodel/viewmodel_property_asset_font.hpp"
 #include "rive/viewmodel/viewmodel_property_asset_image.hpp"
 #include "rive/viewmodel/viewmodel_property_boolean.hpp"
 #include "rive/viewmodel/viewmodel_property_color.hpp"
@@ -395,6 +397,8 @@ public:
                 return new ViewModelPropertyColor();
             case ViewModelPropertyAssetImageBase::typeKey:
                 return new ViewModelPropertyAssetImage();
+            case ViewModelPropertyAssetFontBase::typeKey:
+                return new ViewModelPropertyAssetFont();
             case ViewModelInstanceBooleanBase::typeKey:
                 return new ViewModelInstanceBoolean();
             case ViewModelInstanceListBase::typeKey:
@@ -415,6 +419,8 @@ public:
                 return new ViewModelInstanceAsset();
             case ViewModelInstanceAssetImageBase::typeKey:
                 return new ViewModelInstanceAssetImage();
+            case ViewModelInstanceAssetFontBase::typeKey:
+                return new ViewModelInstanceAssetFont();
             case DataEnumValueBase::typeKey:
                 return new DataEnumValue();
             case CustomPropertyTriggerBase::typeKey:
@@ -1062,6 +1068,9 @@ public:
             case NSlicerTileModeBase::stylePropertyKey:
                 object->as<NSlicerTileModeBase>()->style(value);
                 break;
+            case LayoutComponentStyleBase::interpolatorIdPropertyKey:
+                object->as<LayoutComponentStyleBase>()->interpolatorId(value);
+                break;
             case LayoutComponentStyleBase::flexBasisUnitsValuePropertyKey:
                 object->as<LayoutComponentStyleBase>()->flexBasisUnitsValue(
                     value);
@@ -1085,9 +1094,6 @@ public:
             case LayoutComponentStyleBase::interpolationTypePropertyKey:
                 object->as<LayoutComponentStyleBase>()->interpolationType(
                     value);
-                break;
-            case LayoutComponentStyleBase::interpolatorIdPropertyKey:
-                object->as<LayoutComponentStyleBase>()->interpolatorId(value);
                 break;
             case LayoutComponentStyleBase::displayValuePropertyKey:
                 object->as<LayoutComponentStyleBase>()->displayValue(value);
@@ -1648,6 +1654,41 @@ public:
             case TextBase::textRunListSourcePropertyKey:
                 object->as<TextBase>()->textRunListSource(value);
                 break;
+            case TextBase::verticalTrimValuePropertyKey:
+                object->as<TextBase>()->verticalTrimValue(value);
+                break;
+            case TextBase::verticalTrimTopValuePropertyKey:
+            {
+                auto* _o = object->as<TextBase>();
+                if (_o)
+                {
+                    const uint32_t _cur = _o->verticalTrimValue();
+                    const uint32_t _fieldMask = static_cast<uint32_t>(255u);
+                    const uint32_t _next = static_cast<uint32_t>(
+                        (_cur & ~_fieldMask) | ((value << 0) & _fieldMask));
+                    if (_cur != _next)
+                    {
+                        _o->verticalTrimValue(_next);
+                    }
+                }
+                break;
+            }
+            case TextBase::verticalTrimBottomValuePropertyKey:
+            {
+                auto* _o = object->as<TextBase>();
+                if (_o)
+                {
+                    const uint32_t _cur = _o->verticalTrimValue();
+                    const uint32_t _fieldMask = static_cast<uint32_t>(65280u);
+                    const uint32_t _next = static_cast<uint32_t>(
+                        (_cur & ~_fieldMask) | ((value << 8) & _fieldMask));
+                    if (_cur != _next)
+                    {
+                        _o->verticalTrimValue(_next);
+                    }
+                }
+                break;
+            }
             case TextValueRunBase::styleIdPropertyKey:
                 object->as<TextValueRunBase>()->styleId(value);
                 break;
@@ -2405,6 +2446,9 @@ public:
             case ScrollConstraintBase::velocityYPropertyKey:
                 object->as<ScrollConstraintBase>()->velocityY(value);
                 break;
+            case ScrollConstraintBase::dragMultiplierPropertyKey:
+                object->as<ScrollConstraintBase>()->dragMultiplier(value);
+                break;
             case ElasticScrollPhysicsBase::frictionPropertyKey:
                 object->as<ElasticScrollPhysicsBase>()->friction(value);
                 break;
@@ -3150,6 +3194,8 @@ public:
                 return object->as<NSlicerTileModeBase>()->patchIndex();
             case NSlicerTileModeBase::stylePropertyKey:
                 return object->as<NSlicerTileModeBase>()->style();
+            case LayoutComponentStyleBase::interpolatorIdPropertyKey:
+                return object->as<LayoutComponentStyleBase>()->interpolatorId();
             case LayoutComponentStyleBase::flexBasisUnitsValuePropertyKey:
                 return object->as<LayoutComponentStyleBase>()
                     ->flexBasisUnitsValue();
@@ -3168,8 +3214,6 @@ public:
             case LayoutComponentStyleBase::interpolationTypePropertyKey:
                 return object->as<LayoutComponentStyleBase>()
                     ->interpolationType();
-            case LayoutComponentStyleBase::interpolatorIdPropertyKey:
-                return object->as<LayoutComponentStyleBase>()->interpolatorId();
             case LayoutComponentStyleBase::displayValuePropertyKey:
                 return object->as<LayoutComponentStyleBase>()->displayValue();
             case LayoutComponentStyleBase::positionTypeValuePropertyKey:
@@ -3569,6 +3613,14 @@ public:
                 return object->as<TextBase>()->verticalAlignValue();
             case TextBase::textRunListSourcePropertyKey:
                 return object->as<TextBase>()->textRunListSource();
+            case TextBase::verticalTrimValuePropertyKey:
+                return object->as<TextBase>()->verticalTrimValue();
+            case TextBase::verticalTrimTopValuePropertyKey:
+                return (object->as<TextBase>()->verticalTrimValue() >> 0) &
+                       255u;
+            case TextBase::verticalTrimBottomValuePropertyKey:
+                return (object->as<TextBase>()->verticalTrimValue() >> 8) &
+                       255u;
             case TextValueRunBase::styleIdPropertyKey:
                 return object->as<TextValueRunBase>()->styleId();
             case ArtboardListMapRuleBase::artboardIdPropertyKey:
@@ -3863,6 +3915,8 @@ public:
                 return object->as<ScrollConstraintBase>()->velocityX();
             case ScrollConstraintBase::velocityYPropertyKey:
                 return object->as<ScrollConstraintBase>()->velocityY();
+            case ScrollConstraintBase::dragMultiplierPropertyKey:
+                return object->as<ScrollConstraintBase>()->dragMultiplier();
             case ElasticScrollPhysicsBase::frictionPropertyKey:
                 return object->as<ElasticScrollPhysicsBase>()->friction();
             case ElasticScrollPhysicsBase::speedMultiplierPropertyKey:
@@ -4328,13 +4382,13 @@ public:
             case NestedArtboardLayoutBase::instanceHeightScaleTypePropertyKey:
             case NSlicerTileModeBase::patchIndexPropertyKey:
             case NSlicerTileModeBase::stylePropertyKey:
+            case LayoutComponentStyleBase::interpolatorIdPropertyKey:
             case LayoutComponentStyleBase::flexBasisUnitsValuePropertyKey:
             case LayoutComponentStyleBase::layoutWidthScaleTypePropertyKey:
             case LayoutComponentStyleBase::layoutHeightScaleTypePropertyKey:
             case LayoutComponentStyleBase::layoutAlignmentTypePropertyKey:
             case LayoutComponentStyleBase::animationStyleTypePropertyKey:
             case LayoutComponentStyleBase::interpolationTypePropertyKey:
-            case LayoutComponentStyleBase::interpolatorIdPropertyKey:
             case LayoutComponentStyleBase::displayValuePropertyKey:
             case LayoutComponentStyleBase::positionTypeValuePropertyKey:
             case LayoutComponentStyleBase::flexDirectionValuePropertyKey:
@@ -4511,6 +4565,7 @@ public:
             case TextBase::wrapValuePropertyKey:
             case TextBase::verticalAlignValuePropertyKey:
             case TextBase::textRunListSourcePropertyKey:
+            case TextBase::verticalTrimValuePropertyKey:
             case TextValueRunBase::styleIdPropertyKey:
             case ArtboardListMapRuleBase::artboardIdPropertyKey:
             case ArtboardListMapRuleBase::viewModelIdPropertyKey:
@@ -4637,6 +4692,7 @@ public:
             case ScrollConstraintBase::thresholdPropertyKey:
             case ScrollConstraintBase::velocityXPropertyKey:
             case ScrollConstraintBase::velocityYPropertyKey:
+            case ScrollConstraintBase::dragMultiplierPropertyKey:
             case ElasticScrollPhysicsBase::frictionPropertyKey:
             case ElasticScrollPhysicsBase::speedMultiplierPropertyKey:
             case ElasticScrollPhysicsBase::elasticFactorPropertyKey:
@@ -4971,6 +5027,8 @@ public:
                 return object->is<NSlicerTileModeBase>();
             case NSlicerTileModeBase::stylePropertyKey:
                 return object->is<NSlicerTileModeBase>();
+            case LayoutComponentStyleBase::interpolatorIdPropertyKey:
+                return object->is<LayoutComponentStyleBase>();
             case LayoutComponentStyleBase::flexBasisUnitsValuePropertyKey:
                 return object->is<LayoutComponentStyleBase>();
             case LayoutComponentStyleBase::layoutWidthScaleTypePropertyKey:
@@ -4982,8 +5040,6 @@ public:
             case LayoutComponentStyleBase::animationStyleTypePropertyKey:
                 return object->is<LayoutComponentStyleBase>();
             case LayoutComponentStyleBase::interpolationTypePropertyKey:
-                return object->is<LayoutComponentStyleBase>();
-            case LayoutComponentStyleBase::interpolatorIdPropertyKey:
                 return object->is<LayoutComponentStyleBase>();
             case LayoutComponentStyleBase::displayValuePropertyKey:
                 return object->is<LayoutComponentStyleBase>();
@@ -5331,6 +5387,12 @@ public:
                 return object->is<TextBase>();
             case TextBase::textRunListSourcePropertyKey:
                 return object->is<TextBase>();
+            case TextBase::verticalTrimValuePropertyKey:
+                return object->is<TextBase>();
+            case TextBase::verticalTrimTopValuePropertyKey:
+                return object->is<TextBase>();
+            case TextBase::verticalTrimBottomValuePropertyKey:
+                return object->is<TextBase>();
             case TextValueRunBase::styleIdPropertyKey:
                 return object->is<TextValueRunBase>();
             case ArtboardListMapRuleBase::artboardIdPropertyKey:
@@ -5616,6 +5678,8 @@ public:
             case ScrollConstraintBase::velocityXPropertyKey:
                 return object->is<ScrollConstraintBase>();
             case ScrollConstraintBase::velocityYPropertyKey:
+                return object->is<ScrollConstraintBase>();
+            case ScrollConstraintBase::dragMultiplierPropertyKey:
                 return object->is<ScrollConstraintBase>();
             case ElasticScrollPhysicsBase::frictionPropertyKey:
                 return object->is<ElasticScrollPhysicsBase>();
