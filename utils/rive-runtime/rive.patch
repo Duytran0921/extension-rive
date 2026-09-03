@@ -11,19 +11,19 @@ index 45d4187..2b08d4e 100644
  # Skia dependencies
  skia/dependencies/skia_recorder
 diff --git a/build/rive_build_config.lua b/build/rive_build_config.lua
-index 7e04f4e..d5e3f50 100644
+index dd5001b..568b8f5 100644
 --- a/build/rive_build_config.lua
 +++ b/build/rive_build_config.lua
-@@ -537,7 +537,7 @@ if _OPTIONS['for_android'] then
+@@ -449,7 +449,7 @@ if _OPTIONS['for_android'] then
  
      -- Detect the NDK.
      local EXPECTED_NDK_VERSION = 'r27c'
 -    local NDK_LONG_VERSION_STRING = "27.2.12479018"
 +    local NDK_LONG_VERSION_STRING = "25.2.9519653"
-     ndk = os.getenv('NDK_PATH') or os.getenv('ANDROID_NDK') or '<undefined>'
-     local ndk_version = '<undetected>'
-     local ndk_long_version = '<undetected>'
-@@ -670,6 +670,37 @@ end
+     if _OPTIONS['for_unreal'] then
+         EXPECTED_NDK_VERSION = '25.1.8937393'
+         NDK_LONG_VERSION_STRING = '25.1.8937393'
+@@ -586,6 +586,37 @@ end
  
  filter({})
  
@@ -62,10 +62,10 @@ index 7e04f4e..d5e3f50 100644
  do
      defines({ 'RIVE_MACOSX' })
 diff --git a/premake5_v2.lua b/premake5_v2.lua
-index bdb1cf3..df79b7c 100644
+index 62859c5..56be87c 100644
 --- a/premake5_v2.lua
 +++ b/premake5_v2.lua
-@@ -84,6 +84,12 @@ do
+@@ -50,6 +50,12 @@ do
  end
  filter({})
  
@@ -78,8 +78,8 @@ index bdb1cf3..df79b7c 100644
  dependencies = path.getabsolute('dependencies/')
  dofile(path.join(dependencies, 'premake5_harfbuzz_v2.lua'))
  dofile(path.join(dependencies, 'premake5_sheenbidi_v2.lua'))
-@@ -399,6 +405,12 @@ newoption({
-         .. 'Defined only by editor_native — never by runtime SDK consumers.',
+@@ -296,6 +302,12 @@ newoption({
+     description = 'Compiles in RenderCanvas and Ore GPU abstraction layer.',
  })
  
 +-- Optional pthread enabling (used e.g. for Emscripten wagyu builds)
@@ -92,7 +92,7 @@ index bdb1cf3..df79b7c 100644
      trigger = 'with_rive_docs',
      description = 'Indicates building for use with the docs generator.',
 diff --git a/renderer/premake5.lua b/renderer/premake5.lua
-index a93f3a4..e0f43a1 100644
+index 8de4030..7d7888b 100644
 --- a/renderer/premake5.lua
 +++ b/renderer/premake5.lua
 @@ -6,11 +6,11 @@ dofile(RIVE_RUNTIME_DIR .. '/decoders/premake5_v2.lua')
@@ -109,8 +109,17 @@ index a93f3a4..e0f43a1 100644
      project('path_fiddle')
      do
          dependson('rive')
+@@ -186,7 +186,7 @@ if not _OPTIONS['with-webgpu'] then
+     end
+ end
+ 
+-if _OPTIONS['with-webgpu'] or _OPTIONS['with-dawn'] then
++if (_OPTIONS['with-webgpu'] or _OPTIONS['with-dawn']) and not _OPTIONS['with-libs-only']  then
+     project('webgpu_player')
+     do
+         kind('ConsoleApp')
 diff --git a/renderer/premake5_pls_renderer.lua b/renderer/premake5_pls_renderer.lua
-index a74e446..7a67640 100644
+index 44345a3..e97ffb5 100644
 --- a/renderer/premake5_pls_renderer.lua
 +++ b/renderer/premake5_pls_renderer.lua
 @@ -179,6 +179,11 @@ do
@@ -125,7 +134,7 @@ index a74e446..7a67640 100644
  filter({})
  
  newoption({
-@@ -632,6 +637,7 @@ do
+@@ -626,6 +631,7 @@ do
      filter({})
  
      if RIVE_WAGYU_PORT then
