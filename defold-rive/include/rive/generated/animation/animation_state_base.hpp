@@ -1,8 +1,7 @@
 #ifndef _RIVE_ANIMATION_STATE_BASE_HPP_
 #define _RIVE_ANIMATION_STATE_BASE_HPP_
 #include "rive/animation/advanceable_state.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
+#include "rive/core/field_types/core_uint_type.hpp"
 namespace rive
 {
 class AnimationStateBase : public AdvanceableState
@@ -34,19 +33,18 @@ public:
     static const uint16_t animationIdPropertyKey = 149;
 
 protected:
-    Id m_AnimationId = kEmptyId;
+    uint32_t m_AnimationId = -1;
 
 public:
-    inline Id animationId() const { return m_AnimationId; }
-    void animationId(Id value)
+    inline uint32_t animationId() const { return m_AnimationId; }
+    void animationId(uint32_t value)
     {
         if (m_AnimationId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(animationIdPropertyKey, &m_AnimationId, &value);
         m_AnimationId = value;
-        RIVE_EDITOR_CHANGED(animationIdChanged());
+        animationIdChanged();
         notifyPropertyChanged(animationIdPropertyKey);
     }
 
@@ -62,7 +60,7 @@ public:
         switch (propertyKey)
         {
             case animationIdPropertyKey:
-                m_AnimationId = CoreIdType::runtimeDeserialize(reader);
+                m_AnimationId = CoreUintType::deserialize(reader);
                 return true;
         }
         return AdvanceableState::deserialize(propertyKey, reader);
@@ -70,9 +68,6 @@ public:
 
 protected:
     virtual void animationIdChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/animation_state_ext.inl"
-#endif
 };
 } // namespace rive
 

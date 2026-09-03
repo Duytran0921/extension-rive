@@ -42,11 +42,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_STRING_CHANGING(propertyValuePropertyKey,
-                                    m_PropertyValue,
-                                    value);
         m_PropertyValue = value;
-        RIVE_EDITOR_CHANGED(propertyValueChanged());
+        propertyValueChanged();
         notifyPropertyChanged(propertyValuePropertyKey);
     }
 
@@ -70,9 +67,6 @@ public:
 
 protected:
     virtual void propertyValueChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/data_bind/bindable_property_string_ext.inl"
-#endif
 };
 } // namespace rive
 

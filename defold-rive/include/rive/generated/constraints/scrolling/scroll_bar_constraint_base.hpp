@@ -2,8 +2,7 @@
 #define _RIVE_SCROLL_BAR_CONSTRAINT_BASE_HPP_
 #include "rive/constraints/draggable_constraint.hpp"
 #include "rive/core/field_types/core_bool_type.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
+#include "rive/core/field_types/core_uint_type.hpp"
 namespace rive
 {
 class ScrollBarConstraintBase : public DraggableConstraint
@@ -36,22 +35,19 @@ public:
     static const uint16_t autoSizePropertyKey = 734;
 
 protected:
-    Id m_ScrollConstraintId = kEmptyId;
+    uint32_t m_ScrollConstraintId = -1;
     bool m_AutoSize = true;
 
 public:
-    inline Id scrollConstraintId() const { return m_ScrollConstraintId; }
-    void scrollConstraintId(Id value)
+    inline uint32_t scrollConstraintId() const { return m_ScrollConstraintId; }
+    void scrollConstraintId(uint32_t value)
     {
         if (m_ScrollConstraintId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(scrollConstraintIdPropertyKey,
-                             &m_ScrollConstraintId,
-                             &value);
         m_ScrollConstraintId = value;
-        RIVE_EDITOR_CHANGED(scrollConstraintIdChanged());
+        scrollConstraintIdChanged();
         notifyPropertyChanged(scrollConstraintIdPropertyKey);
     }
 
@@ -62,9 +58,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(autoSizePropertyKey, &m_AutoSize, &value);
         m_AutoSize = value;
-        RIVE_EDITOR_CHANGED(autoSizeChanged());
+        autoSizeChanged();
         notifyPropertyChanged(autoSizePropertyKey);
     }
 
@@ -81,7 +76,7 @@ public:
         switch (propertyKey)
         {
             case scrollConstraintIdPropertyKey:
-                m_ScrollConstraintId = CoreIdType::runtimeDeserialize(reader);
+                m_ScrollConstraintId = CoreUintType::deserialize(reader);
                 return true;
             case autoSizePropertyKey:
                 m_AutoSize = CoreBoolType::deserialize(reader);
@@ -93,9 +88,6 @@ public:
 protected:
     virtual void scrollConstraintIdChanged() {}
     virtual void autoSizeChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/constraints/scrolling/scroll_bar_constraint_ext.inl"
-#endif
 };
 } // namespace rive
 

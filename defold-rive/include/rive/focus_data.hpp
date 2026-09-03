@@ -70,18 +70,12 @@ public:
                   bool isPressed,
                   bool isRepeat) override;
     bool textInput(const std::string& text) override;
-    /// Forwards to the parent TextInput's selection (mirroring how
-    /// key/text input special-case a TextInput parent).
-    bool selectedText(std::string& outText) const override;
     bool gamepadDispatch(
         const ListenerInvocation& invocation,
         ScriptedDrawable** outDispatchedScriptedDrawable = nullptr) override;
     void focused() override;
     void blurred() override;
     bool worldPosition(Vec2D& outPosition) override;
-    /// Root-space bounds computed at call time; the FocusNode's cached bounds
-    /// go stale when an ancestor host moves this artboard instance.
-    bool worldBounds(AABB& outBounds) override;
     Artboard* focusableArtboard() const override { return artboard(); }
     bool acceptsKeyboardInput() const override
     {

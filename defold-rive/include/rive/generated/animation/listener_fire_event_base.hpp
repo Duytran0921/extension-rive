@@ -1,8 +1,7 @@
 #ifndef _RIVE_LISTENER_FIRE_EVENT_BASE_HPP_
 #define _RIVE_LISTENER_FIRE_EVENT_BASE_HPP_
 #include "rive/animation/listener_action.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
+#include "rive/core/field_types/core_uint_type.hpp"
 namespace rive
 {
 class ListenerFireEventBase : public ListenerAction
@@ -32,19 +31,18 @@ public:
     static const uint16_t eventIdPropertyKey = 389;
 
 protected:
-    Id m_EventId = kEmptyId;
+    uint32_t m_EventId = -1;
 
 public:
-    inline Id eventId() const { return m_EventId; }
-    void eventId(Id value)
+    inline uint32_t eventId() const { return m_EventId; }
+    void eventId(uint32_t value)
     {
         if (m_EventId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(eventIdPropertyKey, &m_EventId, &value);
         m_EventId = value;
-        RIVE_EDITOR_CHANGED(eventIdChanged());
+        eventIdChanged();
         notifyPropertyChanged(eventIdPropertyKey);
     }
 
@@ -60,7 +58,7 @@ public:
         switch (propertyKey)
         {
             case eventIdPropertyKey:
-                m_EventId = CoreIdType::runtimeDeserialize(reader);
+                m_EventId = CoreUintType::deserialize(reader);
                 return true;
         }
         return ListenerAction::deserialize(propertyKey, reader);
@@ -68,9 +66,6 @@ public:
 
 protected:
     virtual void eventIdChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/listener_fire_event_ext.inl"
-#endif
 };
 } // namespace rive
 

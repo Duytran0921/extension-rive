@@ -30,9 +30,6 @@ struct VulkanFeatures
     // VK_EXT_fragment_shader_interlock.
     bool fragmentShaderPixelInterlock = false;
 
-    // VK_EXT_color_write_enable.
-    bool colorWriteEnable = false;
-
     // Indicates a nonconformant driver, like MoltenVK.
     bool VK_KHR_portability_subset = false;
 
@@ -53,28 +50,18 @@ struct VulkanFeatures
 class VulkanContext : public GPUResourceManager
 {
 public:
-    // Returns null if the driver can't give us a memory allocator. Preferred
-    // over the constructor, which can only abort on that failure.
-    static rcp<VulkanContext> make(VkInstance,
-                                   VkPhysicalDevice,
-                                   VkDevice,
-                                   const VulkanFeatures&,
-                                   PFN_vkGetInstanceProcAddr);
-
-    // Takes ownership of 'vmaAllocator'. A null one means "make me one", which
-    // aborts if the driver can't, having nowhere to report it.
     VulkanContext(VkInstance,
                   VkPhysicalDevice,
                   VkDevice,
                   const VulkanFeatures&,
-                  PFN_vkGetInstanceProcAddr,
-                  VmaAllocator vmaAllocator = VK_NULL_HANDLE);
+                  PFN_vkGetInstanceProcAddr);
 
     ~VulkanContext();
 
     const VkInstance instance;
     const VkPhysicalDevice physicalDevice;
     const VkDevice device;
+    const VulkanFeatures features;
 
 #define RIVE_VULKAN_INSTANCE_COMMANDS(F)                                       \
     F(GetDeviceProcAddr)                                                       \
@@ -94,6 +81,8 @@ public:
     F(CmdBindVertexBuffers)                                                    \
     F(CmdBlitImage)                                                            \
     F(CmdClearColorImage)                                                      \
+    F(CmdSetStencilReference)                                                  \
+    F(CmdSetBlendConstants)                                                    \
     F(CmdCopyBufferToImage)                                                    \
     F(CmdDraw)                                                                 \
     F(CmdDrawIndexed)                                                          \
@@ -101,16 +90,7 @@ public:
     F(CmdFillBuffer)                                                           \
     F(CmdNextSubpass)                                                          \
     F(CmdPipelineBarrier)                                                      \
-    F(CmdPushConstants)                                                        \
-    F(CmdSetBlendConstants)                                                    \
-    F(CmdSetColorWriteEnableEXT)                                               \
-    F(CmdSetCullMode)                                                          \
-    F(CmdSetDepthWriteEnable)                                                  \
     F(CmdSetScissor)                                                           \
-    F(CmdSetStencilCompareMask)                                                \
-    F(CmdSetStencilOp)                                                         \
-    F(CmdSetStencilReference)                                                  \
-    F(CmdSetStencilWriteMask)                                                  \
     F(CmdSetViewport)                                                          \
     F(CreateCommandPool)                                                       \
     F(CreateDescriptorPool)                                                    \
@@ -150,89 +130,15 @@ public:
     RIVE_VULKAN_DEVICE_COMMANDS(DECLARE_VULKAN_COMMAND)
 #undef DECLARE_VULKAN_COMMAND
 
-    const VkPhysicalDeviceProperties physicalDeviceProperties;
-    const VulkanFeatures features;
-
     VmaAllocator allocator() const { return m_vmaAllocator; }
+
+    const VkPhysicalDeviceProperties& physicalDeviceProperties() const
+    {
+        return m_physicalDeviceProperties;
+    }
 
     bool isFormatSupportedWithFeatureFlags(VkFormat, VkFormatFeatureFlagBits);
     bool supportsD24S8() const { return m_supportsD24S8; }
-
-    // Bumped whenever a vkutil resource fails to allocate. "Init" tries to
-    // check each handle it is about to use directly; this is the backstop for
-    // the ones it never names, like the staging buffer inside
-    // Texture2D::scheduleUpload().
-    uint32_t allocationFailureCount() const { return m_allocationFailureCount; }
-
-    // Called by vkutil once a failed allocation's diagnostic has been printed.
-    // Aborts by default, since steady-state rendering has nowhere to report the
-    // failure; see AllocationFailureScope.
-    void reportAllocationFailure()
-    {
-        ++m_allocationFailureCount;
-        if (m_abortsOnAllocationFailure)
-        {
-            abort();
-        }
-    }
-
-    // Makes allocation failures recoverable for as long as it is in scope,
-    // counting them instead of aborting. "Init" opens one of these since it can
-    // fall back on another backend on failure.
-    class AllocationFailureScope
-    {
-    public:
-        AllocationFailureScope(VulkanContext* vk) :
-            m_vk(vk), m_baseline(vk->m_allocationFailureCount)
-        {
-            // Nesting would restore the wrong state on the inner scope's exit.
-            assert(m_vk->m_abortsOnAllocationFailure);
-            m_vk->m_abortsOnAllocationFailure = false;
-        }
-
-        AllocationFailureScope(const AllocationFailureScope&) = delete;
-        AllocationFailureScope& operator=(const AllocationFailureScope&) =
-            delete;
-
-        ~AllocationFailureScope()
-        {
-            // Catches a nested scope having already restored the flag, and
-            // anything else that flipped it behind our back.
-            assert(!m_vk->m_abortsOnAllocationFailure);
-            m_vk->m_abortsOnAllocationFailure = true;
-        }
-
-        // Whether any allocation has failed since this scope began.
-        bool anyFailed() const
-        {
-            return m_vk->m_allocationFailureCount != m_baseline;
-        }
-
-    private:
-        VulkanContext* const m_vk;
-        const uint32_t m_baseline;
-    };
-
-    template <typename PFN_vkCreate, typename CreateInfo>
-    typename vkutil::CreatedHandle<PFN_vkCreate>::type createHandle(
-        const PFN_vkCreate VulkanContext::* vkCreate,
-        const CreateInfo* createInfo,
-        const char* file,
-        int line)
-    {
-        typename vkutil::CreatedHandle<PFN_vkCreate>::type handle;
-        if (!vkutil::vkReportError(
-                (this->*vkCreate)(device, createInfo, nullptr, &handle),
-                file,
-                line))
-        {
-            reportAllocationFailure();
-            // vkCreate*() doesn't define its out parameter when it fails, so
-            // drop whatever it may have written.
-            return VK_NULL_HANDLE;
-        }
-        return handle;
-    }
 
     // Resource allocation.
     rcp<vkutil::Buffer> makeBuffer(const VkBufferCreateInfo&,
@@ -322,10 +228,9 @@ public:
 private:
     const VmaAllocator m_vmaAllocator;
 
+    VkPhysicalDeviceProperties m_physicalDeviceProperties;
+
     // Vulkan spec: must support one of D24S8 and D32S8.
     bool m_supportsD24S8 = false;
-
-    uint32_t m_allocationFailureCount = 0;
-    bool m_abortsOnAllocationFailure = true;
 };
 } // namespace rive::gpu

@@ -48,9 +48,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(pathFlagsPropertyKey, &m_PathFlags, &value);
         m_PathFlags = value;
-        RIVE_EDITOR_CHANGED(pathFlagsChanged());
+        pathFlagsChanged();
         notifyPropertyChanged(pathFlagsPropertyKey);
     }
 
@@ -61,9 +60,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(isHolePropertyKey, &m_IsHole, &value);
         m_IsHole = value;
-        RIVE_EDITOR_CHANGED(isHoleChanged());
+        isHoleChanged();
         notifyPropertyChanged(isHolePropertyKey);
     }
 
@@ -91,9 +89,6 @@ public:
 protected:
     virtual void pathFlagsChanged() {}
     virtual void isHoleChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/shapes/path_ext.inl"
-#endif
 };
 } // namespace rive
 

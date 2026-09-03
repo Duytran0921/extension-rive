@@ -44,9 +44,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(lengthPropertyKey, &m_Length, &value);
         m_Length = value;
-        RIVE_EDITOR_CHANGED(lengthChanged());
+        lengthChanged();
         notifyPropertyChanged(lengthPropertyKey);
     }
 
@@ -57,11 +56,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(lengthIsPercentagePropertyKey,
-                             &m_LengthIsPercentage,
-                             &value);
         m_LengthIsPercentage = value;
-        RIVE_EDITOR_CHANGED(lengthIsPercentageChanged());
+        lengthIsPercentageChanged();
         notifyPropertyChanged(lengthIsPercentagePropertyKey);
     }
 
@@ -90,9 +86,6 @@ public:
 protected:
     virtual void lengthChanged() {}
     virtual void lengthIsPercentageChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/shapes/paint/dash_ext.inl"
-#endif
 };
 } // namespace rive
 

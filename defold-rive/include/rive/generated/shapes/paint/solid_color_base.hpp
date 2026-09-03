@@ -2,10 +2,9 @@
 #define _RIVE_SOLID_COLOR_BASE_HPP_
 #include "rive/component.hpp"
 #include "rive/core/field_types/core_color_type.hpp"
-#include "rive/generated/shapes/paint/color_channels_base.hpp"
 namespace rive
 {
-class SolidColorBase : public Component, public ColorChannelsBase
+class SolidColorBase : public Component
 {
 protected:
     typedef Component Super;
@@ -35,16 +34,15 @@ protected:
     int m_ColorValue = 0xFF747474;
 
 public:
-    inline int colorValue() const override { return m_ColorValue; }
-    void colorValue(int value) override
+    inline int colorValue() const { return m_ColorValue; }
+    void colorValue(int value)
     {
         if (m_ColorValue == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(colorValuePropertyKey, &m_ColorValue, &value);
         m_ColorValue = value;
-        RIVE_EDITOR_CHANGED(colorValueChanged());
+        colorValueChanged();
         notifyPropertyChanged(colorValuePropertyKey);
     }
 
@@ -68,9 +66,6 @@ public:
 
 protected:
     virtual void colorValueChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/shapes/paint/solid_color_ext.inl"
-#endif
 };
 } // namespace rive
 

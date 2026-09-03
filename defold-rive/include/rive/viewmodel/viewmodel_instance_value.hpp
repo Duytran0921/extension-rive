@@ -40,7 +40,7 @@ class ViewModelInstanceValue : public ViewModelInstanceValueBase,
 private:
     ViewModelProperty* m_ViewModelProperty = nullptr;
     static std::string defaultName;
-    ValueFlags m_changeFlags = ValueFlags::none;
+    ValueFlags m_changeFlags;
     LazyVector<ViewModelInstanceValueDelegate*> m_delegates;
     LazyVector<ViewModelInstanceValueDelegate*> m_delegatesCopy;
     void registerSymbol();

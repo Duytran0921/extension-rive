@@ -3,9 +3,6 @@
 #include <string>
 #include "rive/core.hpp"
 #include "rive/core/field_types/core_string_type.hpp"
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/editor_field_types.hpp"
-#endif
 namespace rive
 {
 class DataEnumValueBase : public Core
@@ -46,9 +43,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_STRING_CHANGING(keyPropertyKey, m_Key, value);
         m_Key = value;
-        RIVE_EDITOR_CHANGED(keyChanged());
+        keyChanged();
         notifyPropertyChanged(keyPropertyKey);
     }
 
@@ -59,9 +55,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_STRING_CHANGING(valuePropertyKey, m_Value, value);
         m_Value = value;
-        RIVE_EDITOR_CHANGED(valueChanged());
+        valueChanged();
         notifyPropertyChanged(valuePropertyKey);
     }
 
@@ -70,8 +65,6 @@ public:
     {
         m_Key = object.m_Key;
         m_Value = object.m_Value;
-        RIVE_EDITOR_COPY(object);
-        RIVE_EDITOR_COPY_VALIDATED(object);
     }
 
     bool deserialize(uint16_t propertyKey, BinaryReader& reader) override
@@ -85,16 +78,12 @@ public:
                 m_Value = CoreStringType::deserialize(reader);
                 return true;
         }
-        RIVE_EDITOR_DESERIALIZE(propertyKey, reader);
         return false;
     }
 
 protected:
     virtual void keyChanged() {}
     virtual void valueChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/viewmodel/data_enum_value_ext.inl"
-#endif
 };
 } // namespace rive
 

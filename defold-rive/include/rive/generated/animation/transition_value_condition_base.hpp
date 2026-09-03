@@ -32,19 +32,18 @@ public:
     static const uint16_t opValuePropertyKey = 156;
 
 protected:
-    uint8_t m_OpValue = 0;
+    uint32_t m_OpValue = 0;
 
 public:
-    inline uint8_t opValue() const { return m_OpValue; }
-    void opValue(uint8_t value)
+    inline uint32_t opValue() const { return m_OpValue; }
+    void opValue(uint32_t value)
     {
         if (m_OpValue == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(opValuePropertyKey, &m_OpValue, &value);
         m_OpValue = value;
-        RIVE_EDITOR_CHANGED(opValueChanged());
+        opValueChanged();
         notifyPropertyChanged(opValuePropertyKey);
     }
 
@@ -67,9 +66,6 @@ public:
 
 protected:
     virtual void opValueChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/transition_value_condition_ext.inl"
-#endif
 };
 } // namespace rive
 

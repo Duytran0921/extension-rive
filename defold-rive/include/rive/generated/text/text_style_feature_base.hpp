@@ -43,9 +43,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(tagPropertyKey, &m_Tag, &value);
         m_Tag = value;
-        RIVE_EDITOR_CHANGED(tagChanged());
+        tagChanged();
         notifyPropertyChanged(tagPropertyKey);
     }
 
@@ -56,9 +55,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(featureValuePropertyKey, &m_FeatureValue, &value);
         m_FeatureValue = value;
-        RIVE_EDITOR_CHANGED(featureValueChanged());
+        featureValueChanged();
         notifyPropertyChanged(featureValuePropertyKey);
     }
 
@@ -87,9 +85,6 @@ public:
 protected:
     virtual void tagChanged() {}
     virtual void featureValueChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/text/text_style_feature_ext.inl"
-#endif
 };
 } // namespace rive
 

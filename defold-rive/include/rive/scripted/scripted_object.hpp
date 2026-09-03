@@ -7,7 +7,7 @@
 #include "rive/refcnt.hpp"
 #include "rive/generated/assets/script_asset_base.hpp"
 #ifdef WITH_RIVE_SCRIPTING
-#include "rive/scripted/script_backend.hpp"
+#include "rive/lua/scripting_vm.hpp"
 #endif
 #include <algorithm>
 #include <vector>
@@ -31,24 +31,15 @@ protected:
     int m_context = 0;
     ScriptedContext* m_contextPtr = nullptr;
     virtual void disposeScriptInputs();
-
-public:
-    /// The backend announces display scale changes here; layouts re-run
-    /// their resize callback so scripts see the new scale.
-    virtual void displayScaleChanged() {}
-
-protected:
 #ifdef WITH_RIVE_SCRIPTING
-    // Non-owning. The backend tracks every ScriptedObject that points at it
+    // Non-owning. ScriptingVM tracks every ScriptedObject that points at it
     // (via registerScriptedObject in ensureScriptInitialized) and nulls these
-    // out at teardown. Holding it owned would create a cycle:
+    // out from ~ScriptingVM. Holding it as rcp would create a cycle:
     // ScriptingVM → lua_State → ScriptedArtboard userdata →
     // ScriptReffedArtboard → inner ArtboardInstance → ScriptedObject →
     // rcp<ScriptingVM>.
-    ScriptBackend* m_vm = nullptr;
-    friend class ScriptBackend;
+    ScriptingVM* m_vm = nullptr;
     friend class ScriptingVM;
-    friend class WasmScriptingVM;
 #endif
     bool inUpdatePhase() const { return m_inUpdatePhase; }
     void setInUpdatePhase(bool value) { m_inUpdatePhase = value; }
@@ -59,7 +50,7 @@ private:
     bool m_inUpdatePhase = false;
 #ifdef WITH_RIVE_SCRIPTING
     bool m_userLuaInitDone = false;
-    bool tryUserInit();
+    bool tryLuaUserInit(lua_State* L);
 #endif
     void disposeScriptedContext();
     void disposeTrackedProperties();
@@ -75,6 +66,7 @@ public:
     void setViewModelInput(std::string name, ViewModelInstanceValue* value);
     void trigger(std::string name);
     bool scriptAdvance(float elapsedSeconds);
+    void scriptDrawCanvas();
     void scriptUpdate();
     void reinit();
 #ifdef WITH_RIVE_SCRIPTING
@@ -88,13 +80,13 @@ public:
     virtual rcp<DataContext> dataContext() { return m_dataContext; }
     void dataContext(rcp<DataContext> value) { m_dataContext = value; }
 #ifdef WITH_RIVE_SCRIPTING
-    /// Run the generator into m_self once per backend; does not push inputs
-    /// or call init(); use hydrateScriptInputs() after data bind.
-    bool ensureScriptInitialized(ScriptBackend* vm, int generatorRef);
-    /// Resolve inputs from DataContext and push into the script; runs init()
-    /// once after first successful hydration when implemented.
+    /// Load Lua factory result into m_self once per VM; does not push inputs or
+    /// call Lua init(); use hydrateScriptInputs() after data bind.
+    bool ensureScriptInitialized(ScriptingVM* vm);
+    /// Resolve inputs from DataContext and push into Lua; runs Lua init() once
+    /// after first successful hydration when implemented.
     bool hydrateScriptInputs();
-    ScriptBackend* backend() const { return m_vm; }
+    lua_State* state() const { return m_vm ? m_vm->state() : nullptr; }
 #else
     bool hydrateScriptInputs() { return true; }
 #endif
@@ -133,9 +125,6 @@ public:
 #ifdef WITH_RIVE_SCRIPTING
     /// Called after hydrateScriptInputs() succeeds;
     virtual void didHydrateScriptInputs() {}
-    // A reinit replaced script state, like a VM swap on editor pause; hosts
-    // re-record content the old state produced.
-    virtual void didReinit() {}
 #endif
 };
 } // namespace rive

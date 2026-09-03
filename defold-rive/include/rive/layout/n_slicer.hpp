@@ -24,10 +24,6 @@ public:
     Image* image();
     SliceMesh* sliceMesh() { return m_sliceMesh.get(); };
     void axisChanged() override;
-#ifdef WITH_RIVE_EDITOR
-    void editorParentChanged(ContainerComponent* from,
-                             ContainerComponent* to) override;
-#endif
 };
 } // namespace rive
 

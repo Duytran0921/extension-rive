@@ -50,9 +50,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(startXPropertyKey, &m_StartX, &value);
         m_StartX = value;
-        RIVE_EDITOR_CHANGED(startXChanged());
+        startXChanged();
         notifyPropertyChanged(startXPropertyKey);
     }
 
@@ -63,9 +62,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(startYPropertyKey, &m_StartY, &value);
         m_StartY = value;
-        RIVE_EDITOR_CHANGED(startYChanged());
+        startYChanged();
         notifyPropertyChanged(startYPropertyKey);
     }
 
@@ -76,9 +74,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(endXPropertyKey, &m_EndX, &value);
         m_EndX = value;
-        RIVE_EDITOR_CHANGED(endXChanged());
+        endXChanged();
         notifyPropertyChanged(endXPropertyKey);
     }
 
@@ -89,9 +86,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(endYPropertyKey, &m_EndY, &value);
         m_EndY = value;
-        RIVE_EDITOR_CHANGED(endYChanged());
+        endYChanged();
         notifyPropertyChanged(endYPropertyKey);
     }
 
@@ -102,9 +98,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(opacityPropertyKey, &m_Opacity, &value);
         m_Opacity = value;
-        RIVE_EDITOR_CHANGED(opacityChanged());
+        opacityChanged();
         notifyPropertyChanged(opacityPropertyKey);
     }
 
@@ -148,9 +143,6 @@ protected:
     virtual void endXChanged() {}
     virtual void endYChanged() {}
     virtual void opacityChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/shapes/paint/linear_gradient_ext.inl"
-#endif
 };
 } // namespace rive
 

@@ -2,8 +2,7 @@
 #define _RIVE_LAYOUT_COMPONENT_BASE_HPP_
 #include "rive/core/field_types/core_bool_type.hpp"
 #include "rive/core/field_types/core_double_type.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
+#include "rive/core/field_types/core_uint_type.hpp"
 #include "rive/drawable.hpp"
 namespace rive
 {
@@ -47,7 +46,7 @@ protected:
     bool m_Clip = false;
     float m_Width = 0.0f;
     float m_Height = 0.0f;
-    Id m_StyleId = kEmptyId;
+    uint32_t m_StyleId = -1;
     float m_FractionalWidth = 1.0f;
     float m_FractionalHeight = 1.0f;
 
@@ -59,9 +58,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(clipPropertyKey, &m_Clip, &value);
         m_Clip = value;
-        RIVE_EDITOR_CHANGED(clipChanged());
+        clipChanged();
         notifyPropertyChanged(clipPropertyKey);
     }
 
@@ -72,9 +70,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(widthPropertyKey, &m_Width, &value);
         m_Width = value;
-        RIVE_EDITOR_CHANGED(widthChanged());
+        widthChanged();
         notifyPropertyChanged(widthPropertyKey);
     }
 
@@ -85,22 +82,20 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(heightPropertyKey, &m_Height, &value);
         m_Height = value;
-        RIVE_EDITOR_CHANGED(heightChanged());
+        heightChanged();
         notifyPropertyChanged(heightPropertyKey);
     }
 
-    inline Id styleId() const { return m_StyleId; }
-    void styleId(Id value)
+    inline uint32_t styleId() const { return m_StyleId; }
+    void styleId(uint32_t value)
     {
         if (m_StyleId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(styleIdPropertyKey, &m_StyleId, &value);
         m_StyleId = value;
-        RIVE_EDITOR_CHANGED(styleIdChanged());
+        styleIdChanged();
         notifyPropertyChanged(styleIdPropertyKey);
     }
 
@@ -111,11 +106,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(fractionalWidthPropertyKey,
-                             &m_FractionalWidth,
-                             &value);
         m_FractionalWidth = value;
-        RIVE_EDITOR_CHANGED(fractionalWidthChanged());
+        fractionalWidthChanged();
         notifyPropertyChanged(fractionalWidthPropertyKey);
     }
 
@@ -126,11 +118,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(fractionalHeightPropertyKey,
-                             &m_FractionalHeight,
-                             &value);
         m_FractionalHeight = value;
-        RIVE_EDITOR_CHANGED(fractionalHeightChanged());
+        fractionalHeightChanged();
         notifyPropertyChanged(fractionalHeightPropertyKey);
     }
 
@@ -160,7 +149,7 @@ public:
                 m_Height = CoreDoubleType::deserialize(reader);
                 return true;
             case styleIdPropertyKey:
-                m_StyleId = CoreIdType::runtimeDeserialize(reader);
+                m_StyleId = CoreUintType::deserialize(reader);
                 return true;
             case fractionalWidthPropertyKey:
                 m_FractionalWidth = CoreDoubleType::deserialize(reader);
@@ -179,9 +168,6 @@ protected:
     virtual void styleIdChanged() {}
     virtual void fractionalWidthChanged() {}
     virtual void fractionalHeightChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/layout_component_ext.inl"
-#endif
 };
 } // namespace rive
 

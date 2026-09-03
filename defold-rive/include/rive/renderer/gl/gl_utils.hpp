@@ -73,52 +73,11 @@ void CompileAndAttachShader(
 void LinkProgram(GLuint program,
                  DebugPrintErrorAndAbort = DebugPrintErrorAndAbort::yes);
 
-// Threaded wasm reaches one heap from several contexts, and a GL name means
-// nothing outside the context that made it: every context numbers from 1.
-#ifdef __EMSCRIPTEN_PTHREADS__
-#define RIVE_GL_NAMES_ARE_PER_CONTEXT
-#endif
-
-enum class GLObjectType
-{
-    buffer,
-    texture,
-    framebuffer,
-    renderbuffer,
-    vertexArray,
-    shader,
-    program,
-};
-
-using GLContextID = int;
-
-#ifdef RIVE_GL_NAMES_ARE_PER_CONTEXT
-GLContextID CurrentContextID();
-
-// Deletes the names other threads left behind for whichever context is current.
-void ReclaimAbandonedNames();
-
-// Process wide, for tests: names left to their owning context, and names that
-// owner has since deleted.
-uint32_t AbandonedNameCount();
-uint32_t ReclaimedNameCount();
-#else
-// A process with a single context can always delete what it created.
-constexpr GLContextID CurrentContextID() { return 0; }
-inline void ReclaimAbandonedNames() {}
-#endif
-
 class GLObject
 {
 public:
     GLObject() = default;
-    GLObject(GLObject&& rhs) :
-        m_id(std::exchange(rhs.m_id, 0))
-#ifdef RIVE_GL_NAMES_ARE_PER_CONTEXT
-        ,
-        m_context(rhs.m_context)
-#endif
-    {}
+    GLObject(GLObject&& rhs) : m_id(std::exchange(rhs.m_id, 0)) {}
 
     GLObject(const GLObject&) = delete;
     GLObject& operator=(const GLObject&) = delete;
@@ -128,24 +87,14 @@ public:
 protected:
     explicit GLObject(GLuint adoptedID) : m_id(adoptedID) {}
 
-    // Deletes m_id, on the context that created it.
-    void destroy(GLObjectType);
-    // Deletes m_id and takes over rhs's name and the context it belongs to.
-    void adopt(GLObjectType, GLObject&& rhs);
-    // Deletes m_id and takes over a name generated on the current context.
-    void adoptName(GLObjectType, GLuint adoptedID);
-
     GLuint m_id = 0;
-#ifdef RIVE_GL_NAMES_ARE_PER_CONTEXT
-    GLContextID m_context = CurrentContextID();
-#endif
 };
 
 class Buffer : public GLObject
 {
 public:
     Buffer() { glGenBuffers(1, &m_id); }
-    ~Buffer() { destroy(GLObjectType::buffer); }
+    ~Buffer() { glDeleteBuffers(1, &m_id); }
 };
 
 class Texture : public GLObject
@@ -155,16 +104,25 @@ public:
     Texture(Texture&& rhs) : GLObject(std::move(rhs)) {}
     Texture& operator=(Texture&& rhs)
     {
-        adopt(GLObjectType::texture, std::move(rhs));
+        reset(std::exchange(rhs.m_id, 0));
         return *this;
     }
-    ~Texture() { destroy(GLObjectType::texture); }
+    ~Texture() { reset(0); }
 
     static Texture Zero() { return Texture(0); }
     static Texture Adopt(GLuint id) { return Texture(id); }
 
 private:
     explicit Texture(GLuint adoptedID) : GLObject(adoptedID) {}
+
+    void reset(GLuint adoptedID)
+    {
+        if (m_id != 0)
+        {
+            glDeleteTextures(1, &m_id);
+        }
+        m_id = adoptedID;
+    }
 };
 
 class Framebuffer : public GLObject
@@ -174,15 +132,24 @@ public:
     Framebuffer(Framebuffer&& rhs) : GLObject(std::move(rhs)) {}
     Framebuffer& operator=(Framebuffer&& rhs)
     {
-        adopt(GLObjectType::framebuffer, std::move(rhs));
+        reset(std::exchange(rhs.m_id, 0));
         return *this;
     }
-    ~Framebuffer() { destroy(GLObjectType::framebuffer); }
+    ~Framebuffer() { reset(0); }
 
     static Framebuffer Zero() { return Framebuffer(0); }
 
 private:
     explicit Framebuffer(GLuint adoptedID) : GLObject(adoptedID) {}
+
+    void reset(GLuint adoptedID)
+    {
+        if (m_id != 0)
+        {
+            glDeleteFramebuffers(1, &m_id);
+        }
+        m_id = adoptedID;
+    }
 };
 
 class Renderbuffer : public GLObject
@@ -192,22 +159,31 @@ public:
     Renderbuffer(Renderbuffer&& rhs) : GLObject(std::move(rhs)) {}
     Renderbuffer& operator=(Renderbuffer&& rhs)
     {
-        adopt(GLObjectType::renderbuffer, std::move(rhs));
+        reset(std::exchange(rhs.m_id, 0));
         return *this;
     }
-    ~Renderbuffer() { destroy(GLObjectType::renderbuffer); }
+    ~Renderbuffer() { reset(0); }
 
     static Renderbuffer Zero() { return Renderbuffer(0); }
 
 private:
     explicit Renderbuffer(GLuint adoptedID) : GLObject(adoptedID) {}
+
+    void reset(GLuint adoptedID)
+    {
+        if (m_id != 0)
+        {
+            glDeleteRenderbuffers(1, &m_id);
+        }
+        m_id = adoptedID;
+    }
 };
 
 class VAO : public GLObject
 {
 public:
     VAO() { glGenVertexArrays(1, &m_id); }
-    ~VAO() { destroy(GLObjectType::vertexArray); }
+    ~VAO() { glDeleteVertexArrays(1, &m_id); }
 };
 
 class Shader : public GLObject
@@ -217,10 +193,10 @@ public:
     Shader(Shader&& rhs) : GLObject(std::move(rhs)) {}
     Shader& operator=(Shader&& rhs)
     {
-        adopt(GLObjectType::shader, std::move(rhs));
+        reset(std::exchange(rhs.m_id, 0));
         return *this;
     }
-    ~Shader() { destroy(GLObjectType::shader); }
+    ~Shader() { reset(0); }
 
     void compile(GLenum type,
                  const char* source,
@@ -237,7 +213,11 @@ public:
 
     void reset(GLuint adoptedID = 0)
     {
-        adoptName(GLObjectType::shader, adoptedID);
+        if (m_id != 0)
+        {
+            glDeleteShader(m_id);
+        }
+        m_id = adoptedID;
     }
 };
 
@@ -247,12 +227,12 @@ public:
     Program() : GLObject(glCreateProgram()) {}
     Program& operator=(Program&& rhs)
     {
-        adopt(GLObjectType::program, std::move(rhs));
+        reset(std::exchange(rhs.m_id, 0));
         m_vertexShader = std::move(rhs.m_vertexShader);
         m_fragmentShader = std::move(rhs.m_fragmentShader);
         return *this;
     }
-    ~Program() { destroy(GLObjectType::program); }
+    ~Program() { reset(0); }
 
     void compileAndAttachShader(GLenum type,
                                 const char* source,
@@ -273,6 +253,8 @@ public:
 
 private:
     explicit Program(GLuint adoptedID) : GLObject(adoptedID) {}
+
+    void reset(GLuint adoptedProgramID);
 
     glutils::Shader m_vertexShader;
     glutils::Shader m_fragmentShader;

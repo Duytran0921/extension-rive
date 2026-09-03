@@ -26,7 +26,6 @@ class Factory;
 class Renderer;
 class TextModifierGroup;
 class TextStylePaint;
-class LayoutParticipant;
 
 // A draw command for interleaving monochrome style paths and color glyphs.
 struct TextDrawCommand
@@ -177,36 +176,11 @@ public:
     Core* hitTest(HitInfo*, const Mat2D&) override;
     void addRun(TextValueRun* run);
     void addModifierGroup(TextModifierGroup* group);
-#ifdef WITH_RIVE_EDITOR
-    void addModifierGroupForEditor(TextModifierGroup* group);
-    void removeModifierGroupForEditor(TextModifierGroup* group);
-    /// Re-order `m_allRuns` (and `m_runs`) by the caller-supplied
-    /// comparator. The runtime `.riv` import preserves sibling
-    /// order via the exporter; coop hydration delivers cores in
-    /// arrival order, so the editor needs to re-sort after batch
-    /// finalize so concatenated text reads in FractionalIndex
-    /// order ("100%", not "%100").
-    void sortRunsForEditor(
-        const std::function<bool(TextValueRun*, TextValueRun*)>& cmp);
-#endif
     void markShapeDirty(bool sendToLayout);
     void modifierShapeDirty();
 
     void update(ComponentDirt value) override;
     void onDirty(ComponentDirt value) override;
-
-    // Participates in a parent layout via an optional
-    // LayoutParticipant child (origin-based; text sizes via its own layout).
-    void composeWorldTransform() override;
-
-protected:
-    void updateConstraints() override;
-
-public:
-    Vec2D layoutBaseTranslation(LayoutParticipant* participant) const;
-    LayoutParticipant* layoutParticipant() const;
-    bool isParticipatingInLayout() const;
-
     Mat2D m_transform;
     Mat2D m_shapeWorldTransform;
 
@@ -254,28 +228,16 @@ public:
     {
         return std::isnan(m_layoutHeight) ? height() : m_layoutHeight;
     }
-    // Overflow treats the box as fixed once a layout controls our size.
-    bool overflowAsFixed() const
-    {
-        return effectiveSizing() == TextSizing::fixed ||
-               !std::isnan(m_layoutWidth);
-    }
     float computedWidth() override { return localBounds().width(); };
     float computedHeight() override { return localBounds().height(); };
     void updateList(std::vector<rcp<ViewModelInstanceListItem>>* list) override;
 #ifdef WITH_RIVE_TEXT
     const std::vector<TextValueRun*>& runs() const { return m_allRuns; }
-    /// Breaks paragraphs into lines and aligns them. Lines are aligned within
-    /// the larger of the natural paragraph width and minAlignWidth, so a
-    /// caller that wants text aligned within a field wider than the text
-    /// (see RawTextInput::alignWidth) gets that, while text overflowing the
-    /// field falls back to starting at 0.
     static SimpleArray<SimpleArray<GlyphLine>> BreakLines(
         const SimpleArray<Paragraph>& paragraphs,
         float width,
         TextAlign align,
-        TextWrap wrap,
-        float minAlignWidth = 0.0f);
+        TextWrap wrap);
     const std::vector<TextStylePaint*>& textStylePaints()
     {
         return m_textStylePaints;
@@ -336,14 +298,6 @@ private:
     RawPath m_clipRect;
     ShapePaintPath m_clipPath;
     AABB m_bounds;
-    // The font-size multiplier chosen by the last fitFontSize layout. Per-run
-    // values are baked into the shaped runs by makeStyled; paragraph spacing is
-    // a Text-level gap added between paragraphs during layout, so it is scaled
-    // by this to keep the fitted layout a true uniform scale of the authored
-    // one. Only meaningful while fitFontSize is the active overflow -- read it
-    // through fitParagraphSpacing(), never directly, so a stale value from a
-    // previous fit can't leak into a paint-only rebuild.
-    float m_fitFontScale = 1.0f;
     std::vector<TextModifierGroup*> m_modifierGroups;
 
     StyledText m_styledText;
@@ -358,12 +312,6 @@ private:
     std::
         unordered_map<ColorGlyphCacheKey, rcp<RenderImage>, ColorGlyphCacheHash>
             m_emojiImageCache;
-    float fitParagraphSpacing() const
-    {
-        return overflow() == TextOverflow::fitFontSize
-                   ? paragraphSpacing() * m_fitFontScale
-                   : paragraphSpacing();
-    }
     TextBoundsInfo computeBoundsInfo();
     // For TextOverflow::fitFontSize: binary-searches the largest integer font
     // size that fits the bounds and returns it as a multiplier of the authored

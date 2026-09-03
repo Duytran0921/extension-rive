@@ -45,9 +45,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(offsetPropertyKey, &m_Offset, &value);
         m_Offset = value;
-        RIVE_EDITOR_CHANGED(offsetChanged());
+        offsetChanged();
         notifyPropertyChanged(offsetPropertyKey);
     }
 
@@ -58,11 +57,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(offsetIsPercentagePropertyKey,
-                             &m_OffsetIsPercentage,
-                             &value);
         m_OffsetIsPercentage = value;
-        RIVE_EDITOR_CHANGED(offsetIsPercentageChanged());
+        offsetIsPercentageChanged();
         notifyPropertyChanged(offsetIsPercentagePropertyKey);
     }
 
@@ -91,9 +87,6 @@ public:
 protected:
     virtual void offsetChanged() {}
     virtual void offsetIsPercentageChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/shapes/paint/dash_path_ext.inl"
-#endif
 };
 } // namespace rive
 

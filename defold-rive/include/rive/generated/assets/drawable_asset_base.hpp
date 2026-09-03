@@ -44,9 +44,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(heightPropertyKey, &m_Height, &value);
         m_Height = value;
-        RIVE_EDITOR_CHANGED(heightChanged());
+        heightChanged();
         notifyPropertyChanged(heightPropertyKey);
     }
 
@@ -57,9 +56,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(widthPropertyKey, &m_Width, &value);
         m_Width = value;
-        RIVE_EDITOR_CHANGED(widthChanged());
+        widthChanged();
         notifyPropertyChanged(widthPropertyKey);
     }
 
@@ -87,9 +85,6 @@ public:
 protected:
     virtual void heightChanged() {}
     virtual void widthChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/assets/drawable_asset_ext.inl"
-#endif
 };
 } // namespace rive
 

@@ -42,11 +42,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(directionValuePropertyKey,
-                             &m_DirectionValue,
-                             &value);
         m_DirectionValue = value;
-        RIVE_EDITOR_CHANGED(directionValueChanged());
+        directionValueChanged();
         notifyPropertyChanged(directionValuePropertyKey);
     }
 
@@ -69,9 +66,6 @@ public:
 
 protected:
     virtual void directionValueChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/constraints/draggable_constraint_ext.inl"
-#endif
 };
 } // namespace rive
 

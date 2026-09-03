@@ -48,9 +48,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_STRING_CHANGING(urlPropertyKey, m_Url, value);
         m_Url = value;
-        RIVE_EDITOR_CHANGED(urlChanged());
+        urlChanged();
         notifyPropertyChanged(urlPropertyKey);
     }
 
@@ -61,9 +60,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(targetValuePropertyKey, &m_TargetValue, &value);
         m_TargetValue = value;
-        RIVE_EDITOR_CHANGED(targetValueChanged());
+        targetValueChanged();
         notifyPropertyChanged(targetValuePropertyKey);
     }
 
@@ -92,9 +90,6 @@ public:
 protected:
     virtual void urlChanged() {}
     virtual void targetValueChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/open_url_event_ext.inl"
-#endif
 };
 } // namespace rive
 

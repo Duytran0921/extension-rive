@@ -19,47 +19,6 @@
 
 namespace rive
 {
-namespace internal
-{
-
-template <typename T, typename = void> struct IsSpannableImpl : std::false_type
-{};
-
-// A type is "spannable" if it has a data() member that returns a pointer and a
-// size() member that returns an integer. This is true for Span, std::span,
-// std::vector, etc.
-template <typename T>
-struct IsSpannableImpl<
-    T,
-    std::enable_if_t<std::is_pointer_v<decltype(std::declval<T>().data())> &&
-                         std::is_integral_v<decltype(std::declval<T>().size())>,
-                     void>> : std::true_type
-{};
-
-template <typename T> constexpr bool IsSpannable = IsSpannableImpl<T>::value;
-
-template <typename SpannableType, typename ElementType, typename = void>
-struct IsTypedSpannableImpl : std::false_type
-{};
-
-template <typename SpannableType, typename ElementType>
-struct IsTypedSpannableImpl<
-    SpannableType,
-    ElementType,
-    std::enable_if_t<
-        std::is_assignable_v<ElementType*&,
-                             decltype(std::declval<SpannableType>().data())>,
-        void>> : IsSpannableImpl<SpannableType>
-{};
-
-template <typename S, typename E>
-constexpr bool IsTypedSpannable = IsTypedSpannableImpl<S, E>::value;
-
-template <typename S, typename = std::enable_if_t<IsSpannable<S>, void>>
-using SpannableElementType =
-    std::remove_pointer_t<decltype(std::declval<S>().data())>;
-
-} // namespace internal
 
 template <typename T> class Span
 {
@@ -67,27 +26,20 @@ template <typename T> class Span
     size_t m_Size;
 
 public:
-    constexpr Span() : m_Ptr(nullptr), m_Size(0) {}
-    constexpr Span(T* ptr, size_t size) : m_Ptr(ptr), m_Size(size)
+    Span() : m_Ptr(nullptr), m_Size(0) {}
+    Span(T* ptr, size_t size) : m_Ptr(ptr), m_Size(size)
     {
         assert(ptr <= ptr + size);
     }
 
-    template <size_t N> constexpr Span(T (&array)[N]) : m_Ptr(array), m_Size(N)
-    {}
-
-    // Handle assignment from any types that have data and size members
-    template <
-        typename U,
-        typename =
-            typename std::enable_if_t<internal::IsTypedSpannable<U, T>, U>>
-    constexpr Span(U& that) : Span(that.data(), that.size())
-    {}
-
+    // Handle Span<foo> --> Span<const foo>
     template <typename U,
-              typename = typename std::
-                  enable_if_t<internal::IsTypedSpannable<const U, T>, U>>
-    constexpr Span(const U& that) : Span(that.data(), that.size())
+              typename = typename std::enable_if<
+                  std::is_same<const U, T>::value>::type>
+    constexpr Span(const Span<U>& that) : Span(that.data(), that.size())
+    {}
+    template <typename Container>
+    constexpr Span(Container& c) : Span(c.data(), c.size())
     {}
 
     T& operator[](size_t index) const
@@ -137,16 +89,6 @@ public:
         return m_Ptr == that.m_Ptr && m_Size == that.m_Size;
     }
 };
-
-// Deduction guides so that spannable types will deduce the template type
-// properly.
-template <typename T>
-Span(const T&) -> Span<internal::SpannableElementType<const T>>;
-
-template <typename T> Span(T&) -> Span<internal::SpannableElementType<const T>>;
-
-// Deduction guide to make array conversions automatic
-template <typename T, size_t N> Span(T (&)[N]) -> Span<T>;
 
 template <typename T> Span<T> make_span(T* ptr, size_t size)
 {

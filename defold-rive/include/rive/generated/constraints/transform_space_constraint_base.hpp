@@ -45,11 +45,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(sourceSpaceValuePropertyKey,
-                             &m_SourceSpaceValue,
-                             &value);
         m_SourceSpaceValue = value;
-        RIVE_EDITOR_CHANGED(sourceSpaceValueChanged());
+        sourceSpaceValueChanged();
         notifyPropertyChanged(sourceSpaceValuePropertyKey);
     }
 
@@ -60,11 +57,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(destSpaceValuePropertyKey,
-                             &m_DestSpaceValue,
-                             &value);
         m_DestSpaceValue = value;
-        RIVE_EDITOR_CHANGED(destSpaceValueChanged());
+        destSpaceValueChanged();
         notifyPropertyChanged(destSpaceValuePropertyKey);
     }
 
@@ -92,9 +86,6 @@ public:
 protected:
     virtual void sourceSpaceValueChanged() {}
     virtual void destSpaceValueChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/constraints/transform_space_constraint_ext.inl"
-#endif
 };
 } // namespace rive
 

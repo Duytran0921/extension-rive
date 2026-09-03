@@ -42,11 +42,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(traversalKindPropertyKey,
-                             &m_TraversalKind,
-                             &value);
         m_TraversalKind = value;
-        RIVE_EDITOR_CHANGED(traversalKindChanged());
+        traversalKindChanged();
         notifyPropertyChanged(traversalKindPropertyKey);
     }
 
@@ -70,9 +67,6 @@ public:
 
 protected:
     virtual void traversalKindChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/focus_action_traversal_ext.inl"
-#endif
 };
 } // namespace rive
 
