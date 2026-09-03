@@ -1,12 +1,7 @@
 #ifndef _RIVE_STATE_TRANSITION_BASE_HPP_
 #define _RIVE_STATE_TRANSITION_BASE_HPP_
 #include "rive/animation/state_machine_layer_component.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
 #include "rive/core/field_types/core_uint_type.hpp"
-#include "rive/core/id.hpp"
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/editor_field_types.hpp"
-#endif
 namespace rive
 {
 class StateTransitionBase : public StateMachineLayerComponent
@@ -42,25 +37,24 @@ public:
     static const uint16_t randomWeightPropertyKey = 537;
 
 protected:
-    Id m_StateToId = kEmptyId;
+    uint32_t m_StateToId = -1;
     uint32_t m_Flags = 0;
     uint32_t m_Duration = 0;
     uint32_t m_ExitTime = 0;
     uint32_t m_InterpolationType = 1;
-    Id m_InterpolatorId = kEmptyId;
+    uint32_t m_InterpolatorId = -1;
     uint32_t m_RandomWeight = 1;
 
 public:
-    inline Id stateToId() const { return m_StateToId; }
-    void stateToId(Id value)
+    inline uint32_t stateToId() const { return m_StateToId; }
+    void stateToId(uint32_t value)
     {
         if (m_StateToId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(stateToIdPropertyKey, &m_StateToId, &value);
         m_StateToId = value;
-        RIVE_EDITOR_CHANGED(stateToIdChanged());
+        stateToIdChanged();
         notifyPropertyChanged(stateToIdPropertyKey);
     }
 
@@ -71,9 +65,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(flagsPropertyKey, &m_Flags, &value);
         m_Flags = value;
-        RIVE_EDITOR_CHANGED(flagsChanged());
+        flagsChanged();
         notifyPropertyChanged(flagsPropertyKey);
     }
 
@@ -84,9 +77,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(durationPropertyKey, &m_Duration, &value);
         m_Duration = value;
-        RIVE_EDITOR_CHANGED(durationChanged());
+        durationChanged();
         notifyPropertyChanged(durationPropertyKey);
     }
 
@@ -97,9 +89,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(exitTimePropertyKey, &m_ExitTime, &value);
         m_ExitTime = value;
-        RIVE_EDITOR_CHANGED(exitTimeChanged());
+        exitTimeChanged();
         notifyPropertyChanged(exitTimePropertyKey);
     }
 
@@ -110,26 +101,20 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(interpolationTypePropertyKey,
-                             &m_InterpolationType,
-                             &value);
         m_InterpolationType = value;
-        RIVE_EDITOR_CHANGED(interpolationTypeChanged());
+        interpolationTypeChanged();
         notifyPropertyChanged(interpolationTypePropertyKey);
     }
 
-    inline Id interpolatorId() const { return m_InterpolatorId; }
-    void interpolatorId(Id value)
+    inline uint32_t interpolatorId() const { return m_InterpolatorId; }
+    void interpolatorId(uint32_t value)
     {
         if (m_InterpolatorId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(interpolatorIdPropertyKey,
-                             &m_InterpolatorId,
-                             &value);
         m_InterpolatorId = value;
-        RIVE_EDITOR_CHANGED(interpolatorIdChanged());
+        interpolatorIdChanged();
         notifyPropertyChanged(interpolatorIdPropertyKey);
     }
 
@@ -140,9 +125,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(randomWeightPropertyKey, &m_RandomWeight, &value);
         m_RandomWeight = value;
-        RIVE_EDITOR_CHANGED(randomWeightChanged());
+        randomWeightChanged();
         notifyPropertyChanged(randomWeightPropertyKey);
     }
 
@@ -156,7 +140,6 @@ public:
         m_InterpolationType = object.m_InterpolationType;
         m_InterpolatorId = object.m_InterpolatorId;
         m_RandomWeight = object.m_RandomWeight;
-        RIVE_EDITOR_COPY(object);
         StateMachineLayerComponent::copy(object);
     }
 
@@ -165,7 +148,7 @@ public:
         switch (propertyKey)
         {
             case stateToIdPropertyKey:
-                m_StateToId = CoreIdType::runtimeDeserialize(reader);
+                m_StateToId = CoreUintType::deserialize(reader);
                 return true;
             case flagsPropertyKey:
                 m_Flags = CoreUintType::deserialize(reader);
@@ -180,13 +163,12 @@ public:
                 m_InterpolationType = CoreUintType::deserialize(reader);
                 return true;
             case interpolatorIdPropertyKey:
-                m_InterpolatorId = CoreIdType::runtimeDeserialize(reader);
+                m_InterpolatorId = CoreUintType::deserialize(reader);
                 return true;
             case randomWeightPropertyKey:
                 m_RandomWeight = CoreUintType::deserialize(reader);
                 return true;
         }
-        RIVE_EDITOR_DESERIALIZE(propertyKey, reader);
         return StateMachineLayerComponent::deserialize(propertyKey, reader);
     }
 
@@ -198,9 +180,6 @@ protected:
     virtual void interpolationTypeChanged() {}
     virtual void interpolatorIdChanged() {}
     virtual void randomWeightChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/state_transition_ext.inl"
-#endif
 };
 } // namespace rive
 

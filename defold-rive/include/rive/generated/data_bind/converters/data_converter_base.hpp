@@ -3,9 +3,6 @@
 #include <string>
 #include "rive/core.hpp"
 #include "rive/core/field_types/core_string_type.hpp"
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/editor_field_types.hpp"
-#endif
 namespace rive
 {
 class DataConverterBase : public Core
@@ -44,18 +41,12 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_STRING_CHANGING(namePropertyKey, m_Name, value);
         m_Name = value;
-        RIVE_EDITOR_CHANGED(nameChanged());
+        nameChanged();
         notifyPropertyChanged(namePropertyKey);
     }
 
-    void copy(const DataConverterBase& object)
-    {
-        m_Name = object.m_Name;
-        RIVE_EDITOR_COPY(object);
-        RIVE_EDITOR_COPY_VALIDATED(object);
-    }
+    void copy(const DataConverterBase& object) { m_Name = object.m_Name; }
 
     bool deserialize(uint16_t propertyKey, BinaryReader& reader) override
     {
@@ -65,15 +56,11 @@ public:
                 m_Name = CoreStringType::deserialize(reader);
                 return true;
         }
-        RIVE_EDITOR_DESERIALIZE(propertyKey, reader);
         return false;
     }
 
 protected:
     virtual void nameChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/data_bind/converters/data_converter_ext.inl"
-#endif
 };
 } // namespace rive
 

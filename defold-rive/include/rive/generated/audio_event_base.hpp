@@ -1,11 +1,7 @@
 #ifndef _RIVE_AUDIO_EVENT_BASE_HPP_
 #define _RIVE_AUDIO_EVENT_BASE_HPP_
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
+#include "rive/core/field_types/core_uint_type.hpp"
 #include "rive/event.hpp"
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/editor_field_types.hpp"
-#endif
 namespace rive
 {
 class AudioEventBase : public Event
@@ -38,19 +34,18 @@ public:
     static const uint16_t assetIdPropertyKey = 408;
 
 protected:
-    Id m_AssetId = kEmptyId;
+    uint32_t m_AssetId = -1;
 
 public:
-    inline Id assetId() const { return m_AssetId; }
-    void assetId(Id value)
+    inline uint32_t assetId() const { return m_AssetId; }
+    void assetId(uint32_t value)
     {
         if (m_AssetId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(assetIdPropertyKey, &m_AssetId, &value);
         m_AssetId = value;
-        RIVE_EDITOR_CHANGED(assetIdChanged());
+        assetIdChanged();
         notifyPropertyChanged(assetIdPropertyKey);
     }
 
@@ -58,7 +53,6 @@ public:
     void copy(const AudioEventBase& object)
     {
         m_AssetId = object.m_AssetId;
-        RIVE_EDITOR_COPY(object);
         Event::copy(object);
     }
 
@@ -67,18 +61,14 @@ public:
         switch (propertyKey)
         {
             case assetIdPropertyKey:
-                m_AssetId = CoreIdType::runtimeDeserialize(reader);
+                m_AssetId = CoreUintType::deserialize(reader);
                 return true;
         }
-        RIVE_EDITOR_DESERIALIZE(propertyKey, reader);
         return Event::deserialize(propertyKey, reader);
     }
 
 protected:
     virtual void assetIdChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/audio_event_ext.inl"
-#endif
 };
 } // namespace rive
 

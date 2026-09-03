@@ -78,7 +78,7 @@ protected:
         const vkutil::ImageAccess& dstAccessAfterCopy,
         const IAABB& copyBounds);
 
-    // InterlockMode::depthStencil.
+    // InterlockMode::msaa.
     vkutil::Texture2D* msaaColorTexture();
     vkutil::Texture2D* msaaDepthStencilTexture();
 
@@ -90,7 +90,7 @@ protected:
     // VK_ACCESS_INPUT_ATTACHMENT_READ_BIT
     rcp<vkutil::Texture2D> m_offscreenColorTexture;
 
-    // InterlockMode::depthStencil.
+    // InterlockMode::msaa.
     rcp<vkutil::Texture2D> m_msaaColorTexture;
     rcp<vkutil::Texture2D> m_msaaDepthStencilTexture;
 };

@@ -51,9 +51,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(initialWidthPropertyKey, &m_InitialWidth, &value);
         m_InitialWidth = value;
-        RIVE_EDITOR_CHANGED(initialWidthChanged());
+        initialWidthChanged();
         notifyPropertyChanged(initialWidthPropertyKey);
     }
 
@@ -64,11 +63,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(initialHeightPropertyKey,
-                             &m_InitialHeight,
-                             &value);
         m_InitialHeight = value;
-        RIVE_EDITOR_CHANGED(initialHeightChanged());
+        initialHeightChanged();
         notifyPropertyChanged(initialHeightPropertyKey);
     }
 
@@ -79,9 +75,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(widthPropertyKey, &m_Width, &value);
         m_Width = value;
-        RIVE_EDITOR_CHANGED(widthChanged());
+        widthChanged();
         notifyPropertyChanged(widthPropertyKey);
     }
 
@@ -92,9 +87,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(heightPropertyKey, &m_Height, &value);
         m_Height = value;
-        RIVE_EDITOR_CHANGED(heightChanged());
+        heightChanged();
         notifyPropertyChanged(heightPropertyKey);
     }
 
@@ -133,9 +127,6 @@ protected:
     virtual void initialHeightChanged() {}
     virtual void widthChanged() {}
     virtual void heightChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/layout/n_sliced_node_ext.inl"
-#endif
 };
 } // namespace rive
 

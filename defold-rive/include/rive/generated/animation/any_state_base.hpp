@@ -29,6 +29,8 @@ public:
     uint16_t coreType() const override { return typeKey; }
 
     Core* clone() const override;
+
+protected:
 };
 } // namespace rive
 

@@ -41,18 +41,13 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_STRING_CHANGING(namePropertyKey, m_Name, value);
         m_Name = value;
-        RIVE_EDITOR_CHANGED(nameChanged());
+        nameChanged();
         notifyPropertyChanged(namePropertyKey);
     }
 
     Core* clone() const override;
-    void copy(const ViewModelComponentBase& object)
-    {
-        m_Name = object.m_Name;
-        RIVE_EDITOR_COPY_VALIDATED(object);
-    }
+    void copy(const ViewModelComponentBase& object) { m_Name = object.m_Name; }
 
     bool deserialize(uint16_t propertyKey, BinaryReader& reader) override
     {
@@ -67,9 +62,6 @@ public:
 
 protected:
     virtual void nameChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/viewmodel/viewmodel_component_ext.inl"
-#endif
 };
 } // namespace rive
 

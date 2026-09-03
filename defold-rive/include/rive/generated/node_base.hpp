@@ -2,9 +2,6 @@
 #define _RIVE_NODE_BASE_HPP_
 #include "rive/core/field_types/core_double_type.hpp"
 #include "rive/transform_component.hpp"
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/editor_field_types.hpp"
-#endif
 namespace rive
 {
 class NodeBase : public TransformComponent
@@ -59,9 +56,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(xPropertyKey, &m_X, &value);
         m_X = value;
-        RIVE_EDITOR_CHANGED(xChanged());
+        xChanged();
         notifyPropertyChanged(xPropertyKey);
     }
 
@@ -72,9 +68,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(yPropertyKey, &m_Y, &value);
         m_Y = value;
-        RIVE_EDITOR_CHANGED(yChanged());
+        yChanged();
         notifyPropertyChanged(yPropertyKey);
     }
 
@@ -187,7 +182,6 @@ public:
     {
         m_X = object.m_X;
         m_Y = object.m_Y;
-        RIVE_EDITOR_COPY(object);
         TransformComponent::copy(object);
     }
 
@@ -202,7 +196,6 @@ public:
                 m_Y = CoreDoubleType::deserialize(reader);
                 return true;
         }
-        RIVE_EDITOR_DESERIALIZE(propertyKey, reader);
         return TransformComponent::deserialize(propertyKey, reader);
     }
 
@@ -217,9 +210,6 @@ protected:
     virtual void computedRootYChanged() {}
     virtual void computedWidthChanged() {}
     virtual void computedHeightChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/node_ext.inl"
-#endif
 };
 } // namespace rive
 

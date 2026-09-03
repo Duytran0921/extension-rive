@@ -1,8 +1,7 @@
 #ifndef _RIVE_BLEND_STATE_TRANSITION_BASE_HPP_
 #define _RIVE_BLEND_STATE_TRANSITION_BASE_HPP_
 #include "rive/animation/state_transition.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
+#include "rive/core/field_types/core_uint_type.hpp"
 namespace rive
 {
 class BlendStateTransitionBase : public StateTransition
@@ -33,21 +32,21 @@ public:
     static const uint16_t exitBlendAnimationIdPropertyKey = 171;
 
 protected:
-    Id m_ExitBlendAnimationId = kEmptyId;
+    uint32_t m_ExitBlendAnimationId = -1;
 
 public:
-    inline Id exitBlendAnimationId() const { return m_ExitBlendAnimationId; }
-    void exitBlendAnimationId(Id value)
+    inline uint32_t exitBlendAnimationId() const
+    {
+        return m_ExitBlendAnimationId;
+    }
+    void exitBlendAnimationId(uint32_t value)
     {
         if (m_ExitBlendAnimationId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(exitBlendAnimationIdPropertyKey,
-                             &m_ExitBlendAnimationId,
-                             &value);
         m_ExitBlendAnimationId = value;
-        RIVE_EDITOR_CHANGED(exitBlendAnimationIdChanged());
+        exitBlendAnimationIdChanged();
         notifyPropertyChanged(exitBlendAnimationIdPropertyKey);
     }
 
@@ -63,7 +62,7 @@ public:
         switch (propertyKey)
         {
             case exitBlendAnimationIdPropertyKey:
-                m_ExitBlendAnimationId = CoreIdType::runtimeDeserialize(reader);
+                m_ExitBlendAnimationId = CoreUintType::deserialize(reader);
                 return true;
         }
         return StateTransition::deserialize(propertyKey, reader);
@@ -71,9 +70,6 @@ public:
 
 protected:
     virtual void exitBlendAnimationIdChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/blend_state_transition_ext.inl"
-#endif
 };
 } // namespace rive
 

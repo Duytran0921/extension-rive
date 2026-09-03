@@ -1,7 +1,6 @@
 #ifndef _RIVE_LAYOUT_COMPONENT_STYLE_HPP_
 #define _RIVE_LAYOUT_COMPONENT_STYLE_HPP_
 #include "rive/generated/layout/layout_component_style_base.hpp"
-#include "rive/layout/layout_style_applier.hpp"
 #include "rive/layout/layout_enums.hpp"
 #ifndef TESTING
 #include "rive/internal/assert_internal_only.hpp"
@@ -29,11 +28,7 @@ public:
     KeyFrameInterpolator* interpolator();
     LayoutStyleInterpolation interpolation();
     LayoutAnimationStyle animationStyle();
-    YGDisplay display() override;
-    // Stack is realized as a 1x1 grid with all children in cell 1,1.
-    bool isStack() const { return layoutTypeValue() == 2; }
-    // Grid-like: children lay out on a grid (grid or stack).
-    bool isGrid() const { return layoutTypeValue() != 0; }
+    YGDisplay display();
     YGPositionType positionType();
     LayoutAlignmentType alignmentType();
     LayoutScaleType widthScaleType();
@@ -44,6 +39,10 @@ public:
     YGWrap flexWrap();
     YGOverflow overflow();
 
+    YGAlign alignItems();
+    YGAlign alignSelf();
+    YGAlign alignContent();
+    YGJustify justifyContent();
     bool intrinsicallySized();
     YGUnit widthUnits();
     YGUnit heightUnits();
@@ -67,15 +66,13 @@ public:
 
     YGUnit gapHorizontalUnits();
     YGUnit gapVerticalUnits();
+    YGUnit maxWidthUnits();
+    YGUnit maxHeightUnits();
+    YGUnit minWidthUnits();
+    YGUnit minHeightUnits();
     YGUnit flexBasisUnits();
 #endif
 
-#ifdef WITH_RIVE_LAYOUT
-    void applyContainerStyle(YGStyle& style,
-                             const LayoutSyncContext& context) override;
-    void applyItemStyle(YGStyle& style,
-                        const LayoutSyncContext& context) override;
-#endif
     void markLayoutNodeDirty();
     void markLayoutStyleDirty();
     void scaleTypeChanged();
@@ -86,15 +83,19 @@ public:
     void layoutWidthScaleTypeChanged() override;
     void layoutHeightScaleTypeChanged() override;
     void displayValueChanged() override;
-    void layoutTypeValueChanged() override;
-    void justifyItemsValueChanged() override;
-    void justifySelfValueChanged() override;
     void positionTypeValueChanged() override;
     void overflowValueChanged() override;
     void intrinsicallySizedValueChanged() override;
     void flexDirectionValueChanged() override;
     void directionValueChanged() override;
+    void alignContentValueChanged() override;
+    void alignItemsValueChanged() override;
+    void alignSelfValueChanged() override;
+    void justifyContentValueChanged() override;
     void flexWrapValueChanged() override;
+    void flexChanged() override;
+    void flexGrowChanged() override;
+    void flexShrinkChanged() override;
     void flexBasisChanged() override;
     void aspectRatioChanged() override;
     void gapHorizontalChanged() override;
@@ -145,7 +146,6 @@ public:
     void positionTopUnitsValueChanged() override;
     void positionBottomUnitsValueChanged() override;
 
-    void linkCornerRadiusChanged() override;
     void cornerRadiusTLChanged() override;
     void cornerRadiusTRChanged() override;
     void cornerRadiusBLChanged() override;

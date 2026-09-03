@@ -47,9 +47,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(speedPropertyKey, &m_Speed, &value);
         m_Speed = value;
-        RIVE_EDITOR_CHANGED(speedChanged());
+        speedChanged();
         notifyPropertyChanged(speedPropertyKey);
     }
 
@@ -60,9 +59,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(isPlayingPropertyKey, &m_IsPlaying, &value);
         m_IsPlaying = value;
-        RIVE_EDITOR_CHANGED(isPlayingChanged());
+        isPlayingChanged();
         notifyPropertyChanged(isPlayingPropertyKey);
     }
 
@@ -91,9 +89,6 @@ public:
 protected:
     virtual void speedChanged() {}
     virtual void isPlayingChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/nested_simple_animation_ext.inl"
-#endif
 };
 } // namespace rive
 

@@ -47,9 +47,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(x1PropertyKey, &m_X1, &value);
         m_X1 = value;
-        RIVE_EDITOR_CHANGED(x1Changed());
+        x1Changed();
         notifyPropertyChanged(x1PropertyKey);
     }
 
@@ -60,9 +59,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(y1PropertyKey, &m_Y1, &value);
         m_Y1 = value;
-        RIVE_EDITOR_CHANGED(y1Changed());
+        y1Changed();
         notifyPropertyChanged(y1PropertyKey);
     }
 
@@ -73,9 +71,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(x2PropertyKey, &m_X2, &value);
         m_X2 = value;
-        RIVE_EDITOR_CHANGED(x2Changed());
+        x2Changed();
         notifyPropertyChanged(x2PropertyKey);
     }
 
@@ -86,9 +83,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(y2PropertyKey, &m_Y2, &value);
         m_Y2 = value;
-        RIVE_EDITOR_CHANGED(y2Changed());
+        y2Changed();
         notifyPropertyChanged(y2PropertyKey);
     }
 
@@ -127,9 +123,6 @@ protected:
     virtual void y1Changed() {}
     virtual void x2Changed() {}
     virtual void y2Changed() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/cubic_interpolator_component_ext.inl"
-#endif
 };
 } // namespace rive
 

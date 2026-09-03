@@ -1,12 +1,8 @@
 #ifndef _RIVE_ARTBOARD_BASE_HPP_
 #define _RIVE_ARTBOARD_BASE_HPP_
 #include "rive/core/field_types/core_double_type.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
+#include "rive/core/field_types/core_uint_type.hpp"
 #include "rive/layout_component.hpp"
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/editor_field_types.hpp"
-#endif
 namespace rive
 {
 class ArtboardBase : public LayoutComponent
@@ -47,8 +43,8 @@ public:
 protected:
     float m_OriginX = 0.0f;
     float m_OriginY = 0.0f;
-    Id m_DefaultStateMachineId = kEmptyId;
-    Id m_ViewModelId = kEmptyId;
+    uint32_t m_DefaultStateMachineId = -1;
+    uint32_t m_ViewModelId = -1;
 
 public:
     inline float originX() const { return m_OriginX; }
@@ -58,9 +54,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(originXPropertyKey, &m_OriginX, &value);
         m_OriginX = value;
-        RIVE_EDITOR_CHANGED(originXChanged());
+        originXChanged();
         notifyPropertyChanged(originXPropertyKey);
     }
 
@@ -71,37 +66,35 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(originYPropertyKey, &m_OriginY, &value);
         m_OriginY = value;
-        RIVE_EDITOR_CHANGED(originYChanged());
+        originYChanged();
         notifyPropertyChanged(originYPropertyKey);
     }
 
-    inline Id defaultStateMachineId() const { return m_DefaultStateMachineId; }
-    void defaultStateMachineId(Id value)
+    inline uint32_t defaultStateMachineId() const
+    {
+        return m_DefaultStateMachineId;
+    }
+    void defaultStateMachineId(uint32_t value)
     {
         if (m_DefaultStateMachineId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(defaultStateMachineIdPropertyKey,
-                             &m_DefaultStateMachineId,
-                             &value);
         m_DefaultStateMachineId = value;
-        RIVE_EDITOR_CHANGED(defaultStateMachineIdChanged());
+        defaultStateMachineIdChanged();
         notifyPropertyChanged(defaultStateMachineIdPropertyKey);
     }
 
-    inline Id viewModelId() const { return m_ViewModelId; }
-    void viewModelId(Id value)
+    inline uint32_t viewModelId() const { return m_ViewModelId; }
+    void viewModelId(uint32_t value)
     {
         if (m_ViewModelId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(viewModelIdPropertyKey, &m_ViewModelId, &value);
         m_ViewModelId = value;
-        RIVE_EDITOR_CHANGED(viewModelIdChanged());
+        viewModelIdChanged();
         notifyPropertyChanged(viewModelIdPropertyKey);
     }
 
@@ -112,7 +105,6 @@ public:
         m_OriginY = object.m_OriginY;
         m_DefaultStateMachineId = object.m_DefaultStateMachineId;
         m_ViewModelId = object.m_ViewModelId;
-        RIVE_EDITOR_COPY(object);
         LayoutComponent::copy(object);
     }
 
@@ -127,14 +119,12 @@ public:
                 m_OriginY = CoreDoubleType::deserialize(reader);
                 return true;
             case defaultStateMachineIdPropertyKey:
-                m_DefaultStateMachineId =
-                    CoreIdType::runtimeDeserialize(reader);
+                m_DefaultStateMachineId = CoreUintType::deserialize(reader);
                 return true;
             case viewModelIdPropertyKey:
-                m_ViewModelId = CoreIdType::runtimeDeserialize(reader);
+                m_ViewModelId = CoreUintType::deserialize(reader);
                 return true;
         }
-        RIVE_EDITOR_DESERIALIZE(propertyKey, reader);
         return LayoutComponent::deserialize(propertyKey, reader);
     }
 
@@ -143,9 +133,6 @@ protected:
     virtual void originYChanged() {}
     virtual void defaultStateMachineIdChanged() {}
     virtual void viewModelIdChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/artboard_ext.inl"
-#endif
 };
 } // namespace rive
 

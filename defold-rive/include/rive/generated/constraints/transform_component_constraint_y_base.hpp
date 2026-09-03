@@ -56,9 +56,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(copyFactorYPropertyKey, &m_CopyFactorY, &value);
         m_CopyFactorY = value;
-        RIVE_EDITOR_CHANGED(copyFactorYChanged());
+        copyFactorYChanged();
         notifyPropertyChanged(copyFactorYPropertyKey);
     }
 
@@ -69,9 +68,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(minValueYPropertyKey, &m_MinValueY, &value);
         m_MinValueY = value;
-        RIVE_EDITOR_CHANGED(minValueYChanged());
+        minValueYChanged();
         notifyPropertyChanged(minValueYPropertyKey);
     }
 
@@ -82,9 +80,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(maxValueYPropertyKey, &m_MaxValueY, &value);
         m_MaxValueY = value;
-        RIVE_EDITOR_CHANGED(maxValueYChanged());
+        maxValueYChanged();
         notifyPropertyChanged(maxValueYPropertyKey);
     }
 
@@ -95,9 +92,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(doesCopyYPropertyKey, &m_DoesCopyY, &value);
         m_DoesCopyY = value;
-        RIVE_EDITOR_CHANGED(doesCopyYChanged());
+        doesCopyYChanged();
         notifyPropertyChanged(doesCopyYPropertyKey);
     }
 
@@ -108,9 +104,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(minYPropertyKey, &m_MinY, &value);
         m_MinY = value;
-        RIVE_EDITOR_CHANGED(minYChanged());
+        minYChanged();
         notifyPropertyChanged(minYPropertyKey);
     }
 
@@ -121,9 +116,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(maxYPropertyKey, &m_MaxY, &value);
         m_MaxY = value;
-        RIVE_EDITOR_CHANGED(maxYChanged());
+        maxYChanged();
         notifyPropertyChanged(maxYPropertyKey);
     }
 
@@ -171,9 +165,6 @@ protected:
     virtual void doesCopyYChanged() {}
     virtual void minYChanged() {}
     virtual void maxYChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/constraints/transform_component_constraint_y_ext.inl"
-#endif
 };
 } // namespace rive
 

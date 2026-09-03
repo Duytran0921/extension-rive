@@ -1,7 +1,6 @@
 #ifndef _RIVE_CUSTOM_PROPERTY_ENUM_BASE_HPP_
 #define _RIVE_CUSTOM_PROPERTY_ENUM_BASE_HPP_
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
+#include "rive/core/field_types/core_uint_type.hpp"
 #include "rive/custom_property.hpp"
 namespace rive
 {
@@ -34,35 +33,31 @@ public:
     static const uint16_t enumIdPropertyKey = 873;
 
 protected:
-    Id m_PropertyValue = kEmptyId;
-    Id m_EnumId = kEmptyId;
+    uint32_t m_PropertyValue = -1;
+    uint32_t m_EnumId = -1;
 
 public:
-    inline Id propertyValue() const { return m_PropertyValue; }
-    void propertyValue(Id value)
+    inline uint32_t propertyValue() const { return m_PropertyValue; }
+    void propertyValue(uint32_t value)
     {
         if (m_PropertyValue == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(propertyValuePropertyKey,
-                             &m_PropertyValue,
-                             &value);
         m_PropertyValue = value;
-        RIVE_EDITOR_CHANGED(propertyValueChanged());
+        propertyValueChanged();
         notifyPropertyChanged(propertyValuePropertyKey);
     }
 
-    inline Id enumId() const { return m_EnumId; }
-    void enumId(Id value)
+    inline uint32_t enumId() const { return m_EnumId; }
+    void enumId(uint32_t value)
     {
         if (m_EnumId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(enumIdPropertyKey, &m_EnumId, &value);
         m_EnumId = value;
-        RIVE_EDITOR_CHANGED(enumIdChanged());
+        enumIdChanged();
         notifyPropertyChanged(enumIdPropertyKey);
     }
 
@@ -79,10 +74,10 @@ public:
         switch (propertyKey)
         {
             case propertyValuePropertyKey:
-                m_PropertyValue = CoreIdType::runtimeDeserialize(reader);
+                m_PropertyValue = CoreUintType::deserialize(reader);
                 return true;
             case enumIdPropertyKey:
-                m_EnumId = CoreIdType::runtimeDeserialize(reader);
+                m_EnumId = CoreUintType::deserialize(reader);
                 return true;
         }
         return CustomProperty::deserialize(propertyKey, reader);
@@ -91,9 +86,6 @@ public:
 protected:
     virtual void propertyValueChanged() {}
     virtual void enumIdChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/custom_property_enum_ext.inl"
-#endif
 };
 } // namespace rive
 

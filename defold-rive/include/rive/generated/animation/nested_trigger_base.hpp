@@ -35,6 +35,8 @@ public:
     virtual void fire(const CallbackData& value) = 0;
 
     Core* clone() const override;
+
+protected:
 };
 } // namespace rive
 

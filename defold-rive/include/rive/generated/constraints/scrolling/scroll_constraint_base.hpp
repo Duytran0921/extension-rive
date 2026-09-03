@@ -3,9 +3,7 @@
 #include "rive/constraints/draggable_constraint.hpp"
 #include "rive/core/field_types/core_bool_type.hpp"
 #include "rive/core/field_types/core_double_type.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
 #include "rive/core/field_types/core_uint_type.hpp"
-#include "rive/core/id.hpp"
 namespace rive
 {
 class ScrollConstraintBase : public DraggableConstraint
@@ -43,7 +41,6 @@ public:
     static const uint16_t physicsTypeValuePropertyKey = 727;
     static const uint16_t physicsIdPropertyKey = 726;
     static const uint16_t virtualizePropertyKey = 850;
-    static const uint16_t virtualizeBufferPropertyKey = 221;
     static const uint16_t infinitePropertyKey = 851;
     static const uint16_t interactivePropertyKey = 891;
     static const uint16_t thresholdPropertyKey = 894;
@@ -51,17 +48,14 @@ public:
     static const uint16_t velocityYPropertyKey = 1024;
     static const uint16_t scrollActivePropertyKey = 1025;
     static const uint16_t dragMultiplierPropertyKey = 1029;
-    static const uint16_t computedContentWidthPropertyKey = 1069;
-    static const uint16_t computedContentHeightPropertyKey = 1070;
 
 protected:
     float m_ScrollOffsetX = 0.0f;
     float m_ScrollOffsetY = 0.0f;
     bool m_Snap = false;
     uint32_t m_PhysicsTypeValue = 0;
-    Id m_PhysicsId = kEmptyId;
+    uint32_t m_PhysicsId = -1;
     bool m_Virtualize = false;
-    uint8_t m_VirtualizeBuffer = 0;
     bool m_Infinite = false;
     bool m_Interactive = true;
     float m_Threshold = 0.0f;
@@ -75,11 +69,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(scrollOffsetXPropertyKey,
-                             &m_ScrollOffsetX,
-                             &value);
         m_ScrollOffsetX = value;
-        RIVE_EDITOR_CHANGED(scrollOffsetXChanged());
+        scrollOffsetXChanged();
         notifyPropertyChanged(scrollOffsetXPropertyKey);
     }
 
@@ -90,11 +81,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(scrollOffsetYPropertyKey,
-                             &m_ScrollOffsetY,
-                             &value);
         m_ScrollOffsetY = value;
-        RIVE_EDITOR_CHANGED(scrollOffsetYChanged());
+        scrollOffsetYChanged();
         notifyPropertyChanged(scrollOffsetYPropertyKey);
     }
 
@@ -144,9 +132,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(snapPropertyKey, &m_Snap, &value);
         m_Snap = value;
-        RIVE_EDITOR_CHANGED(snapChanged());
+        snapChanged();
         notifyPropertyChanged(snapPropertyKey);
     }
 
@@ -157,24 +144,20 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(physicsTypeValuePropertyKey,
-                             &m_PhysicsTypeValue,
-                             &value);
         m_PhysicsTypeValue = value;
-        RIVE_EDITOR_CHANGED(physicsTypeValueChanged());
+        physicsTypeValueChanged();
         notifyPropertyChanged(physicsTypeValuePropertyKey);
     }
 
-    inline Id physicsId() const { return m_PhysicsId; }
-    void physicsId(Id value)
+    inline uint32_t physicsId() const { return m_PhysicsId; }
+    void physicsId(uint32_t value)
     {
         if (m_PhysicsId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(physicsIdPropertyKey, &m_PhysicsId, &value);
         m_PhysicsId = value;
-        RIVE_EDITOR_CHANGED(physicsIdChanged());
+        physicsIdChanged();
         notifyPropertyChanged(physicsIdPropertyKey);
     }
 
@@ -185,25 +168,9 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(virtualizePropertyKey, &m_Virtualize, &value);
         m_Virtualize = value;
-        RIVE_EDITOR_CHANGED(virtualizeChanged());
+        virtualizeChanged();
         notifyPropertyChanged(virtualizePropertyKey);
-    }
-
-    inline uint8_t virtualizeBuffer() const { return m_VirtualizeBuffer; }
-    void virtualizeBuffer(uint8_t value)
-    {
-        if (m_VirtualizeBuffer == value)
-        {
-            return;
-        }
-        RIVE_EDITOR_CHANGING(virtualizeBufferPropertyKey,
-                             &m_VirtualizeBuffer,
-                             &value);
-        m_VirtualizeBuffer = value;
-        RIVE_EDITOR_CHANGED(virtualizeBufferChanged());
-        notifyPropertyChanged(virtualizeBufferPropertyKey);
     }
 
     inline bool infinite() const { return m_Infinite; }
@@ -213,9 +180,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(infinitePropertyKey, &m_Infinite, &value);
         m_Infinite = value;
-        RIVE_EDITOR_CHANGED(infiniteChanged());
+        infiniteChanged();
         notifyPropertyChanged(infinitePropertyKey);
     }
 
@@ -226,9 +192,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(interactivePropertyKey, &m_Interactive, &value);
         m_Interactive = value;
-        RIVE_EDITOR_CHANGED(interactiveChanged());
+        interactiveChanged();
         notifyPropertyChanged(interactivePropertyKey);
     }
 
@@ -239,9 +204,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(thresholdPropertyKey, &m_Threshold, &value);
         m_Threshold = value;
-        RIVE_EDITOR_CHANGED(thresholdChanged());
+        thresholdChanged();
         notifyPropertyChanged(thresholdPropertyKey);
     }
 
@@ -291,38 +255,9 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(dragMultiplierPropertyKey,
-                             &m_DragMultiplier,
-                             &value);
         m_DragMultiplier = value;
-        RIVE_EDITOR_CHANGED(dragMultiplierChanged());
+        dragMultiplierChanged();
         notifyPropertyChanged(dragMultiplierPropertyKey);
-    }
-
-    virtual void setComputedContentWidth(float value) = 0;
-    virtual float computedContentWidth() = 0;
-    void computedContentWidth(float value)
-    {
-        if (computedContentWidth() == value)
-        {
-            return;
-        }
-        setComputedContentWidth(value);
-        computedContentWidthChanged();
-        notifyPropertyChanged(computedContentWidthPropertyKey);
-    }
-
-    virtual void setComputedContentHeight(float value) = 0;
-    virtual float computedContentHeight() = 0;
-    void computedContentHeight(float value)
-    {
-        if (computedContentHeight() == value)
-        {
-            return;
-        }
-        setComputedContentHeight(value);
-        computedContentHeightChanged();
-        notifyPropertyChanged(computedContentHeightPropertyKey);
     }
 
     Core* clone() const override;
@@ -334,7 +269,6 @@ public:
         m_PhysicsTypeValue = object.m_PhysicsTypeValue;
         m_PhysicsId = object.m_PhysicsId;
         m_Virtualize = object.m_Virtualize;
-        m_VirtualizeBuffer = object.m_VirtualizeBuffer;
         m_Infinite = object.m_Infinite;
         m_Interactive = object.m_Interactive;
         m_Threshold = object.m_Threshold;
@@ -359,13 +293,10 @@ public:
                 m_PhysicsTypeValue = CoreUintType::deserialize(reader);
                 return true;
             case physicsIdPropertyKey:
-                m_PhysicsId = CoreIdType::runtimeDeserialize(reader);
+                m_PhysicsId = CoreUintType::deserialize(reader);
                 return true;
             case virtualizePropertyKey:
                 m_Virtualize = CoreBoolType::deserialize(reader);
-                return true;
-            case virtualizeBufferPropertyKey:
-                m_VirtualizeBuffer = CoreUintType::deserialize(reader);
                 return true;
             case infinitePropertyKey:
                 m_Infinite = CoreBoolType::deserialize(reader);
@@ -393,7 +324,6 @@ protected:
     virtual void physicsTypeValueChanged() {}
     virtual void physicsIdChanged() {}
     virtual void virtualizeChanged() {}
-    virtual void virtualizeBufferChanged() {}
     virtual void infiniteChanged() {}
     virtual void interactiveChanged() {}
     virtual void thresholdChanged() {}
@@ -401,11 +331,6 @@ protected:
     virtual void velocityYChanged() {}
     virtual void scrollActiveChanged() {}
     virtual void dragMultiplierChanged() {}
-    virtual void computedContentWidthChanged() {}
-    virtual void computedContentHeightChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/constraints/scrolling/scroll_constraint_ext.inl"
-#endif
 };
 } // namespace rive
 

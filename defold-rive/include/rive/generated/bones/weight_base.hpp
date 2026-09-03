@@ -43,9 +43,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(valuesPropertyKey, &m_Values, &value);
         m_Values = value;
-        RIVE_EDITOR_CHANGED(valuesChanged());
+        valuesChanged();
         notifyPropertyChanged(valuesPropertyKey);
     }
 
@@ -56,9 +55,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(indicesPropertyKey, &m_Indices, &value);
         m_Indices = value;
-        RIVE_EDITOR_CHANGED(indicesChanged());
+        indicesChanged();
         notifyPropertyChanged(indicesPropertyKey);
     }
 
@@ -87,9 +85,6 @@ public:
 protected:
     virtual void valuesChanged() {}
     virtual void indicesChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/bones/weight_ext.inl"
-#endif
 };
 } // namespace rive
 

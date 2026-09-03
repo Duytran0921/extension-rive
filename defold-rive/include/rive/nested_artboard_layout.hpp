@@ -20,6 +20,7 @@ public:
     void markHostingLayoutDirty(ArtboardInstance* artboardInstance) override;
     void markLayoutNodeDirty(
         bool shouldForceUpdateLayoutBounds = false) override;
+    void update(ComponentDirt value) override;
     void updateConstraints() override;
     StatusCode onAddedClean(CoreContext* context) override;
 
@@ -42,7 +43,6 @@ public:
         return this->as<TransformComponent>();
     }
     bool isRow();
-    bool isStack();
 
 protected:
     void instanceWidthChanged() override;
@@ -53,7 +53,6 @@ protected:
     void instanceHeightScaleTypeChanged() override;
 
 private:
-    void applyLayoutPlacement();
     void updateWidthOverride();
     void updateHeightOverride();
     StyleOverrider<NestedArtboardLayout> m_styleOverrider =

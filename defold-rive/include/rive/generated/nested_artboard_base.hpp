@@ -3,13 +3,9 @@
 #include "rive/core/field_types/core_bool_type.hpp"
 #include "rive/core/field_types/core_bytes_type.hpp"
 #include "rive/core/field_types/core_double_type.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
+#include "rive/core/field_types/core_uint_type.hpp"
 #include "rive/drawable.hpp"
 #include "rive/span.hpp"
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/editor_field_types.hpp"
-#endif
 namespace rive
 {
 class NestedArtboardBase : public Drawable
@@ -49,23 +45,22 @@ public:
     static const uint16_t isStatefulPropertyKey = 1014;
 
 protected:
-    Id m_ArtboardId = kEmptyId;
+    uint32_t m_ArtboardId = -1;
     bool m_IsPaused = false;
     float m_Speed = 1.0f;
     float m_Quantize = -1.0f;
     bool m_IsStateful = false;
 
 public:
-    inline Id artboardId() const { return m_ArtboardId; }
-    void artboardId(Id value)
+    inline uint32_t artboardId() const { return m_ArtboardId; }
+    void artboardId(uint32_t value)
     {
         if (m_ArtboardId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(artboardIdPropertyKey, &m_ArtboardId, &value);
         m_ArtboardId = value;
-        RIVE_EDITOR_CHANGED(artboardIdChanged());
+        artboardIdChanged();
         notifyPropertyChanged(artboardIdPropertyKey);
     }
 
@@ -79,9 +74,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(isPausedPropertyKey, &m_IsPaused, &value);
         m_IsPaused = value;
-        RIVE_EDITOR_CHANGED(isPausedChanged());
+        isPausedChanged();
         notifyPropertyChanged(isPausedPropertyKey);
     }
 
@@ -92,9 +86,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(speedPropertyKey, &m_Speed, &value);
         m_Speed = value;
-        RIVE_EDITOR_CHANGED(speedChanged());
+        speedChanged();
         notifyPropertyChanged(speedPropertyKey);
     }
 
@@ -105,9 +98,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(quantizePropertyKey, &m_Quantize, &value);
         m_Quantize = value;
-        RIVE_EDITOR_CHANGED(quantizeChanged());
+        quantizeChanged();
         notifyPropertyChanged(quantizePropertyKey);
     }
 
@@ -118,9 +110,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(isStatefulPropertyKey, &m_IsStateful, &value);
         m_IsStateful = value;
-        RIVE_EDITOR_CHANGED(isStatefulChanged());
+        isStatefulChanged();
         notifyPropertyChanged(isStatefulPropertyKey);
     }
 
@@ -133,7 +124,6 @@ public:
         m_Speed = object.m_Speed;
         m_Quantize = object.m_Quantize;
         m_IsStateful = object.m_IsStateful;
-        RIVE_EDITOR_COPY(object);
         Drawable::copy(object);
     }
 
@@ -142,7 +132,7 @@ public:
         switch (propertyKey)
         {
             case artboardIdPropertyKey:
-                m_ArtboardId = CoreIdType::runtimeDeserialize(reader);
+                m_ArtboardId = CoreUintType::deserialize(reader);
                 return true;
             case dataBindPathIdsPropertyKey:
                 decodeDataBindPathIds(CoreBytesType::deserialize(reader));
@@ -160,7 +150,6 @@ public:
                 m_IsStateful = CoreBoolType::deserialize(reader);
                 return true;
         }
-        RIVE_EDITOR_DESERIALIZE(propertyKey, reader);
         return Drawable::deserialize(propertyKey, reader);
     }
 
@@ -171,9 +160,6 @@ protected:
     virtual void speedChanged() {}
     virtual void quantizeChanged() {}
     virtual void isStatefulChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/nested_artboard_ext.inl"
-#endif
 };
 } // namespace rive
 

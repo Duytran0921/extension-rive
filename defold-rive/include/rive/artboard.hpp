@@ -21,20 +21,16 @@
 #include "rive/typed_children.hpp"
 #include "rive/virtualizing_component.hpp"
 #include "rive/input/focus_node.hpp"
-#include "rive/input/focus_manager.hpp"
 #include "rive/semantic/semantic_node.hpp"
-#include "rive/scripting_slots.hpp"
+#include "rive/lua/scripting_vm.hpp"
 
-#include <memory>
 #include <queue>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 namespace rive
 {
 class KeyFrameInterpolator;
-class KeyFrame;
 class ArtboardComponentList;
 class ArtboardHost;
 class File;
@@ -81,15 +77,6 @@ class Artboard : public ArtboardBase,
 
 private:
     std::vector<Core*> m_Objects;
-#ifdef WITH_RIVE_EDITOR
-    // Editor-only: supplementary resolver for objects referenced by
-    // their coop (client, object) identity rather than a flat
-    // `m_Objects` index. editor_native installs one of these at
-    // coop-session start so `Artboard::resolve(Id)` can route
-    // non-runtime CoopIds through the coop object map. Left null in
-    // runtime-only resolution.
-    CoreContext* m_editorResolver = nullptr;
-#endif
     std::vector<Core*> m_invalidObjects;
     std::vector<LinearAnimation*> m_Animations;
     std::vector<StateMachine*> m_StateMachines;
@@ -106,7 +93,7 @@ private:
     std::vector<AdvancingComponent*> m_advancingComponents;
     rcp<DataContext> m_DataContext = nullptr;
 #ifdef WITH_RIVE_SCRIPTING
-    [[maybe_unused]] ScriptingVMSlot m_scriptingVM = nullptr;
+    ScriptingVM* m_scriptingVM = nullptr;
 #endif
     bool m_JoysticksApplyBeforeUpdate = true;
 
@@ -125,11 +112,6 @@ private:
     bool m_didChange = true;
     Artboard* parentArtboard() const;
     ArtboardHost* m_host = nullptr;
-    // This artboard's own manager, allocated only by roots — an artboard
-    // opened from a File, a scripted artboard, or one a caller explicitly
-    // asks. Null on source artboards and on nested / component-list
-    // instances, which adopt their root's manager instead.
-    std::unique_ptr<FocusManager> m_ownedFocusManager;
     FocusManager* m_activeFocusManager = nullptr;
     SemanticManager* m_activeSemanticManager = nullptr;
     rcp<SemanticNode> m_semanticBoundaryNode;
@@ -141,17 +123,6 @@ private:
     void cloneObjectDataBinds(const Core* object,
                               Core* clone,
                               Artboard* artboard) const;
-    // Lazily-built index of this artboard's data binds that target keyframes,
-    // keyed by the (shared) keyframe. Keyframe binds live in dataBinds() but
-    // are never applied directly (keyframes aren't Components); instead a
-    // playing LinearAnimationInstance clones them onto per-instance holders and
-    // resolves them via keyFrameValueHolder. Built once from dataBinds(); the
-    // source artboard's binds don't change at runtime. `mutable` so the const
-    // accessors below can populate it on first use.
-    mutable std::unordered_map<const KeyFrame*, DataBind*>
-        m_keyFrameSourceBinds;
-    mutable bool m_keyFrameSourceBindsBuilt = false;
-    void buildKeyFrameSourceBindsIndex() const;
     void initScriptedObjects();
 
     // Variable that tracks whenever the draw order changes. It is used by the
@@ -181,47 +152,18 @@ public:
     static void incFrameId() { sm_frameId++; }
 #endif
     void updateDataBinds(bool applyTargetToSource = true) override;
-    // The data bind (if any) targeting the given keyframe's value, resolved
-    // from this artboard's serialized keyframe binds. Used by
-    // LinearAnimationInstance to lazily build per-instance value holders. Call
-    // on the source artboard (see Artboard::artboardSource()).
-    DataBind* keyFrameSourceBind(const KeyFrame* keyframe) const;
-    // True if any of this artboard's data binds target a keyframe. Cheap gate
-    // so playback in files without keyframe binds does no per-keyframe work.
-    bool hasKeyFrameSourceBinds() const;
     void host(ArtboardHost* artboardHost);
     ArtboardHost* host() const;
-    void addedToHost()
-    {
-        setLayoutFlag(LayoutComponentFlags::JustAddedToHost, true);
-    }
+    void addedToHost() { m_justAddedToHost = true; }
 
-    /// Set the active FocusManager for this artboard. Raw setter used by
-    /// buildFocusTree, which is the ordering authority for the walk it is
-    /// running; it does not tear down or rebuild anything. To point an artboard
-    /// at a different manager from the outside, use adoptFocusManager.
+    /// Set the active FocusManager for this artboard. The FocusManager is
+    /// typically owned by a StateMachineInstance.
     void setActiveFocusManager(FocusManager* manager)
     {
         m_activeFocusManager = manager;
     }
     /// Get the active FocusManager for this artboard.
     FocusManager* focusManager() const { return m_activeFocusManager; }
-
-    /// Create this artboard's own FocusManager if it doesn't have one yet and
-    /// make it active. Idempotent, and a no-op once any manager is active — an
-    /// artboard that has adopted a parent's manager does not allocate one.
-    ///
-    /// Called by whoever establishes a root artboard — File::instanceArtboard
-    /// and ScriptReffedArtboard
-
-    FocusManager* ensureFocusManager();
-
-    /// Point this artboard (and everything it hosts) at a different
-    /// FocusManager, tearing down the tree built against the previous one and
-    /// rebuilding it against [manager]. This is the entry point for a host that
-    /// owns the manager — a parent artboard sharing its own, or Dart/the editor
-    /// supplying one.
-    void adoptFocusManager(FocusManager* manager);
 
 #ifdef WITH_RIVE_TOOLS
     /// Set an external parent FocusNode for this artboard's root-level focus
@@ -319,74 +261,7 @@ public:
     StatusCode initialize();
     bool didChange() { return m_didChange; }
 
-    Core* resolve(Id id) const override;
-#ifdef WITH_RIVE_EDITOR
-    // Install / remove an auxiliary resolver for CoopId-backed
-    // references (see `m_editorResolver`). `editor_native::EditorFile`
-    // is the expected implementor.
-    void setEditorResolver(CoreContext* resolver)
-    {
-        m_editorResolver = resolver;
-    }
-    CoreContext* editorResolver() const { return m_editorResolver; }
-    // Assign the Factory editor_native's coop-created Artboards use to
-    // mint RenderPaint / RenderPath / etc. when runtime children fire
-    // their onAddedDirty. Runtime `.riv` loads install the factory via
-    // `File::import`; editor_native's EditorFile calls this right after
-    // `new EditorArtboard()` in createObject.
-    void setFactory(Factory* factory) { m_Factory = factory; }
-    // Editor-mode Drawable registration. Runtime `.riv` loads populate
-    // `m_Drawables` during `Artboard::initialize()` by walking
-    // `m_Objects`. In coop-apply, `m_Objects` stays empty — children
-    // live in EditorFile's arena — so EditorFile's `finalizeBatch`
-    // drives per-Drawable registration via this setter. Mirrors Dart's
-    // `Artboard.addComponent` specialty-list population
-    // (packages/rive_core/lib/artboard.dart:1068-1098).
-    void addDrawable(Drawable* drawable) { m_Drawables.push_back(drawable); }
-    // Clear the drawables list so `finalizeBatch` can rebuild it
-    // idempotently when a follow-on coop batch adds more Drawables.
-    void clearDrawables() { m_Drawables.clear(); }
-    // Editor-side iteration over registered drawables. Used by
-    // CommandDispatcher::handleHitTest to walk components inside an
-    // artboard back-to-front for component-level selection. Vector
-    // order matches draw order (later index = higher z).
-    const std::vector<Drawable*>& drawables() const { return m_Drawables; }
-    // Editor-only: clear/rebuild the animation + state-machine lists.
-    // Runtime `.riv` loads populate these via `ArtboardImporter::
-    // addAnimation` / `addStateMachine` during import; coop-hydrated
-    // animations / state-machines never hit that path, so
-    // `finalizeBatch` registers them manually after each batch. Clear
-    // first so repeated finalizeBatch calls don't duplicate entries.
-    void clearAnimations() { m_Animations.clear(); }
-    void clearStateMachines() { m_StateMachines.clear(); }
-    // Editor-only: public wrappers around the otherwise-private
-    // `addAnimation` / `addStateMachine` so `finalizeBatch` can
-    // register coop-hydrated entries without friending EditorFile on
-    // the runtime Artboard. Runtime `.riv` loads still go through
-    // `ArtboardImporter` (our friend), so no changes to that path.
-    void addAnimationForEditor(LinearAnimation* object)
-    {
-        addAnimation(object);
-    }
-    void addStateMachineForEditor(StateMachine* object)
-    {
-        addStateMachine(object);
-    }
-    // Public editor-only surface for the DAG topological sort.
-    // `sortDependencies` is private in the runtime `.riv` load path
-    // (driven by `initialize()`); editor_native's `finalizeBatch` needs
-    // to invoke it after per-component `buildDependencies` calls.
-    void sortDependenciesEditor() { sortDependencies(); }
-    const std::vector<Component*>& dependencyOrder() const
-    {
-        return m_DependencyOrder;
-    }
-    // Initialize `m_layout` from the artboard's width/height so
-    // `layoutWidth()` / `layoutHeight()` / `bounds()` report non-zero.
-    // Mirrors the first lines of `Artboard::initialize()` at
-    // artboard.cpp:261-266. Called once by `EditorFile::finalizeBatch`.
-    void initLayoutForEditor();
-#endif
+    Core* resolve(uint32_t id) const override;
 #ifdef WITH_RIVE_TOOLS
     void artboardId(uint16_t id) { m_artboardId = id; }
     uint16_t artboardId() const { return m_artboardId; }
@@ -461,10 +336,20 @@ public:
     Drawable* firstDrawable() { return m_FirstDrawable; };
     void addScriptedObject(ScriptedObject* object);
 
+    void drawCanvases();
+    void internalDrawCanvases();
+
     /// Poll async work (image decodes, etc.) so promises resolve before
     /// script callbacks run. Called at the top of advance().
     void pollAsyncWork();
 
+#ifdef WITH_RIVE_SCRIPTING
+    /// Returns the lua_State* (as void*) for the first drawCanvas scripted
+    /// object in this artboard or any nested artboard, recursively. Returns
+    /// nullptr if no drawCanvas scripts exist. Used by the Dart FFI layer to
+    /// open a GPU frame before calling drawCanvases().
+    void* findDrawCanvasLuauState() const;
+#endif
     void drawInternal(Renderer* renderer);
     void draw(Renderer* renderer) override;
     void addToRenderPath(RenderPath* path, const Mat2D& transform);
@@ -472,11 +357,8 @@ public:
 
     void changed();
 #ifdef TESTING
-    const ShapePaintPath* clipPath() { return &mutableRenderPaths().world; }
-    const ShapePaintPath* backgroundPath()
-    {
-        return &mutableRenderPaths().local;
-    }
+    ShapePaintPath* clipPath() { return &m_worldPath; }
+    ShapePaintPath* backgroundPath() { return &m_localPath; }
 #endif
 
     const std::vector<Core*>& objects() const { return m_Objects; }
@@ -495,11 +377,8 @@ public:
         return m_ComponentLists;
     }
     rcp<DataContext> dataContext() { return m_DataContext; }
-#ifdef WITH_RIVE_SCRIPTING_LUAU
-    void scriptingVM(rcp<ScriptingVM> value)
-    {
-        m_scriptingVM = std::move(value);
-    }
+#ifdef WITH_RIVE_SCRIPTING
+    void scriptingVM(ScriptingVM* value) { m_scriptingVM = value; }
 #endif
     // Advances detached scripted view model instances (those with no parents),
     // which are not reachable from the bound view model tree. No-op when
@@ -514,15 +393,11 @@ public:
     float layoutHeight() const;
     float layoutX() const;
     float layoutY() const;
-    float pivotOriginX() const override { return originX(); }
-    float pivotOriginY() const override { return originY(); }
     AABB bounds() const;
     AABB worldBounds() const override;
     Vec2D origin() const;
     void xChanged() override;
     void yChanged() override;
-    void originXChanged() override;
-    void originYChanged() override;
 
     void resetSize()
     {
@@ -543,25 +418,6 @@ public:
     void bindViewModelInstance(rcp<ViewModelInstance> viewModelInstance,
                                rcp<DataContext> parent);
     void bindViewModelInstance(rcp<ViewModelInstance> viewModelInstance);
-    void bindViewModelInstances(
-        std::vector<rcp<ViewModelInstance>> viewModelInstances,
-        rcp<DataContext> parent);
-    // Sets the main (non-global) view model instance in the data context
-    // without rebinding. Call bind() to apply. A global instance is routed to
-    // setGlobalViewModelInstance.
-    void setViewModelInstance(rcp<ViewModelInstance> viewModelInstance);
-    // Sets/replaces the global view model instance bound under the given global
-    // view model name without rebinding, preserving the main instance and the
-    // other globals' order. Returns false if the name does not match the
-    // instance's global view model. Call bind() to apply.
-    bool setGlobalViewModelInstance(const std::string& name,
-                                    rcp<ViewModelInstance> viewModelInstance);
-    // Applies the current data context: rebinds the artboard's data binds.
-    // No-op if nothing has been set.
-    void bind();
-    // @returns the global view model instance currently bound under the given
-    // name, or nullptr if none has been set. Never creates.
-    rcp<ViewModelInstance> globalViewModelInstance(const std::string& name);
     void rebuildDataBind(DataBind*) override;
 
     bool hasAudio() const;
@@ -663,16 +519,13 @@ public:
     // provided.
     int defaultStateMachineIndex() const;
 
-    /// Make an instance of this artboard. A non null factory reroutes the
-    /// instance's render resource creation (a deferred session facade);
-    /// nested instances inherit it.
-    template <typename T = ArtboardInstance>
-    std::unique_ptr<T> instance(Factory* factory = nullptr) const
+    /// Make an instance of this artboard.
+    template <typename T = ArtboardInstance> std::unique_ptr<T> instance() const
     {
         std::unique_ptr<T> artboardClone(new T);
         artboardClone->copy(*this);
 
-        artboardClone->m_Factory = factory != nullptr ? factory : m_Factory;
+        artboardClone->m_Factory = m_Factory;
         artboardClone->m_FrameOrigin = m_FrameOrigin;
         artboardClone->m_DataContext = m_DataContext;
         artboardClone->m_IsInstance = true;
@@ -714,14 +567,6 @@ public:
             artboardClone->m_StateMachines.push_back(stateMachine);
         }
 
-        if (factory != nullptr && factory != m_Factory)
-        {
-            // Nested clones instanced off the file level source during the
-            // clone loop; redo them on the override factory before
-            // initialize wires animations to them.
-            artboardClone->reinstanceNestedArtboards(factory);
-        }
-
         if (artboardClone->initialize() != StatusCode::Ok)
         {
             artboardClone = nullptr;
@@ -731,26 +576,8 @@ public:
         return artboardClone;
     }
 
-    void reinstanceNestedArtboards(Factory* factory);
-
     /// Returns true if the artboard is an instance of another
     bool isInstance() const { return m_IsInstance; }
-
-#ifdef WITH_RIVE_EDITOR
-    /// Mark this artboard as an instance. Editor-only setter so
-    /// `EditorFile::cloneArtboardInstance` can produce a clone that
-    /// the runtime treats as a normal instance (drives the
-    /// `isInstance()`-gated branches in update/draw paths). The
-    /// runtime's own `Artboard::instance()` template sets this
-    /// directly because it has friend access to `m_IsInstance`.
-    void setIsInstance(bool value) { m_IsInstance = value; }
-
-    /// Editor-mode pass-through to the private `addObject` so
-    /// `EditorFile::cloneArtboardInstance` can populate `m_Objects`
-    /// on a freshly-constructed clone (mirroring what `instance()`
-    /// does internally for `.riv`-loaded sources).
-    void editorAddObject(Core* object) { addObject(object); }
-#endif
 
     /// Returns true when the artboard will shift the origin from the top
     /// left to the relative width/height of the artboard itself. This is
@@ -786,34 +613,6 @@ public:
     float volume() const;
     void volume(float value);
 
-    // Opacity imposed by a host (e.g. a NestedArtboard) that renders this
-    // artboard as an instance. Kept separate from the `opacity` property so the
-    // artboard's own opacity remains free to animate / data-bind; the two are
-    // multiplied together when propagating opacity to this artboard's contents.
-    float hostOpacity() const { return m_hostOpacity; }
-    void hostOpacity(float value);
-
-    // Opacity propagated to this artboard's contents: the artboard's own
-    // (possibly animated) opacity folded with any host-imposed opacity.
-    float childOpacity() override { return renderOpacity() * m_hostOpacity; }
-
-    // True when the artboard has a non-identity rotation/scale of its own.
-    bool hasSelfTransform() const
-    {
-        return rotation() != 0.0f || scaleX() != 1.0f || scaleY() != 1.0f;
-    }
-
-    // The artboard's own rotation/scale, pivoted at the content-local origin
-    // (0,0). Applied on top of the frame-origin translation by both draw and
-    // hit-test so they stay consistent. Identity when hasSelfTransform() is
-    // false.
-    Mat2D selfTransform() const
-    {
-        Mat2D m = Mat2D::fromRotation(rotation());
-        m.scaleByValues(scaleX(), scaleY());
-        return m;
-    }
-
 #ifdef EXTERNAL_RIVE_AUDIO_ENGINE
     rcp<AudioEngine> audioEngine() const;
     void audioEngine(rcp<AudioEngine> audioEngine);
@@ -824,7 +623,6 @@ public:
 #endif
 private:
     float m_volume = 1.0f;
-    float m_hostOpacity = 1.0f;
 #ifdef WITH_RIVE_TOOLS
     ArtboardCallback m_layoutChangedCallback = nullptr;
     ArtboardCallback m_layoutDirtyCallback = nullptr;
@@ -862,12 +660,6 @@ public:
         m_rootTransformCallback = callback;
     }
 #endif
-
-protected:
-    // The File backing this artboard, when it is an instance. Used to lazily
-    // create default global view model instances. The base Artboard (e.g. an
-    // editor-time artboard) has no backing file.
-    virtual rcp<const File> artboardFile() const;
 };
 
 class ArtboardInstance : public Artboard
@@ -879,9 +671,6 @@ public:
     /// Holds a reference to the File that vended this instance so the File
     /// outlives the instance.
     void file(rcp<const File> file);
-    /// @returns the File that vended this instance, if any. Used to lazily
-    /// create default global view model instances on demand.
-    rcp<const File> file() const;
 
     std::unique_ptr<LinearAnimationInstance> animationAt(size_t index);
     std::unique_ptr<LinearAnimationInstance> animationNamed(
@@ -910,9 +699,6 @@ public:
     SMINumber* getNumber(const std::string& name, const std::string& path);
     SMITrigger* getTrigger(const std::string& name, const std::string& path);
     TextValueRun* getTextRun(const std::string& name, const std::string& path);
-
-protected:
-    rcp<const File> artboardFile() const override;
 
 private:
     rcp<const File> m_file;

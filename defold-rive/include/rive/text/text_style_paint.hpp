@@ -3,12 +3,10 @@
 #include "rive/generated/text/text_style_paint_base.hpp"
 #include "rive/shapes/shape_paint_container.hpp"
 #include "rive/shapes/shape_paint_path.hpp"
-#include <map>
+#include <unordered_map>
 
 namespace rive
 {
-class TextStyleBackground;
-
 class TextStylePaint : public TextStylePaintBase, public ShapePaintContainer
 {
 public:
@@ -16,9 +14,6 @@ public:
     bool addPath(const RawPath& rawPath, float opacity);
     void rewindPath();
     void draw(Renderer* renderer, const Mat2D& worldTransform);
-
-    void background(TextStyleBackground* value) { m_background = value; }
-    TextStyleBackground* background() const { return m_background; }
 
     /// Returns the foreground color from the first solid fill, or black if
     /// none.
@@ -33,11 +28,10 @@ public:
 
 private:
     Artboard* getArtboard() override { return artboard(); }
-    std::map<float, ShapePaintPath> m_opacityPaths;
+    std::unordered_map<float, ShapePaintPath> m_opacityPaths;
     std::vector<rcp<RenderPaint>> m_paintPool;
     ShapePaintPath m_path;
     bool m_hasContents = false;
-    TextStyleBackground* m_background = nullptr;
 };
 } // namespace rive
 

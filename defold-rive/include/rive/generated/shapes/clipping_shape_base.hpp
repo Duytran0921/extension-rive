@@ -2,9 +2,7 @@
 #define _RIVE_CLIPPING_SHAPE_BASE_HPP_
 #include "rive/component.hpp"
 #include "rive/core/field_types/core_bool_type.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
 #include "rive/core/field_types/core_uint_type.hpp"
-#include "rive/core/id.hpp"
 namespace rive
 {
 class ClippingShapeBase : public Component
@@ -36,34 +34,32 @@ public:
     static const uint16_t isVisiblePropertyKey = 94;
 
 protected:
-    Id m_SourceId = kEmptyId;
-    uint8_t m_FillRule = 0;
+    uint32_t m_SourceId = -1;
+    uint32_t m_FillRule = 0;
     bool m_IsVisible = true;
 
 public:
-    inline Id sourceId() const { return m_SourceId; }
-    void sourceId(Id value)
+    inline uint32_t sourceId() const { return m_SourceId; }
+    void sourceId(uint32_t value)
     {
         if (m_SourceId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(sourceIdPropertyKey, &m_SourceId, &value);
         m_SourceId = value;
-        RIVE_EDITOR_CHANGED(sourceIdChanged());
+        sourceIdChanged();
         notifyPropertyChanged(sourceIdPropertyKey);
     }
 
-    inline uint8_t fillRule() const { return m_FillRule; }
-    void fillRule(uint8_t value)
+    inline uint32_t fillRule() const { return m_FillRule; }
+    void fillRule(uint32_t value)
     {
         if (m_FillRule == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(fillRulePropertyKey, &m_FillRule, &value);
         m_FillRule = value;
-        RIVE_EDITOR_CHANGED(fillRuleChanged());
+        fillRuleChanged();
         notifyPropertyChanged(fillRulePropertyKey);
     }
 
@@ -74,9 +70,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(isVisiblePropertyKey, &m_IsVisible, &value);
         m_IsVisible = value;
-        RIVE_EDITOR_CHANGED(isVisibleChanged());
+        isVisibleChanged();
         notifyPropertyChanged(isVisiblePropertyKey);
     }
 
@@ -94,7 +89,7 @@ public:
         switch (propertyKey)
         {
             case sourceIdPropertyKey:
-                m_SourceId = CoreIdType::runtimeDeserialize(reader);
+                m_SourceId = CoreUintType::deserialize(reader);
                 return true;
             case fillRulePropertyKey:
                 m_FillRule = CoreUintType::deserialize(reader);
@@ -110,9 +105,6 @@ protected:
     virtual void sourceIdChanged() {}
     virtual void fillRuleChanged() {}
     virtual void isVisibleChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/shapes/clipping_shape_ext.inl"
-#endif
 };
 } // namespace rive
 

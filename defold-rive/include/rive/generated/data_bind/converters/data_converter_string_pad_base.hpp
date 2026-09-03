@@ -47,9 +47,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(lengthPropertyKey, &m_Length, &value);
         m_Length = value;
-        RIVE_EDITOR_CHANGED(lengthChanged());
+        lengthChanged();
         notifyPropertyChanged(lengthPropertyKey);
     }
 
@@ -60,9 +59,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_STRING_CHANGING(textPropertyKey, m_Text, value);
         m_Text = value;
-        RIVE_EDITOR_CHANGED(textChanged());
+        textChanged();
         notifyPropertyChanged(textPropertyKey);
     }
 
@@ -73,9 +71,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(padTypePropertyKey, &m_PadType, &value);
         m_PadType = value;
-        RIVE_EDITOR_CHANGED(padTypeChanged());
+        padTypeChanged();
         notifyPropertyChanged(padTypePropertyKey);
     }
 
@@ -109,9 +106,6 @@ protected:
     virtual void lengthChanged() {}
     virtual void textChanged() {}
     virtual void padTypeChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/data_bind/converters/data_converter_string_pad_ext.inl"
-#endif
 };
 } // namespace rive
 

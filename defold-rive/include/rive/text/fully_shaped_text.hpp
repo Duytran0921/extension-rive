@@ -37,11 +37,6 @@ public:
 
     uint32_t lineCount() const { return (uint32_t)m_orderedLines.size(); }
 
-    /// How far every line was pushed down to align the text within
-    /// alignHeight. Already baked into the ordered lines' y and into the
-    /// bounds; anything that walks the lines itself has to start here.
-    float verticalOffset() const { return m_verticalOffset; }
-
     void shape(Span<Unichar> text,
                Span<TextRun> runs,
                TextSizing sizing,
@@ -51,10 +46,7 @@ public:
                TextWrap wrap,
                TextOrigin origin,
                TextOverflow overflow,
-               float paragraphSpacing,
-               float alignWidth = 0.0f,
-               VerticalTextAlign verticalAlignment = VerticalTextAlign::top,
-               float alignHeight = 0.0f);
+               float paragraphSpacing);
 
 private:
     SimpleArray<Paragraph> m_paragraphs;
@@ -63,7 +55,6 @@ private:
     GlyphLookup m_glyphLookup;
     GlyphRun m_ellipsisRun;
     AABB m_bounds;
-    float m_verticalOffset = 0.0f;
 };
 } // namespace rive
 

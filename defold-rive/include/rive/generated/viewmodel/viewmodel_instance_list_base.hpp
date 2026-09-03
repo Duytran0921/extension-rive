@@ -1,7 +1,6 @@
 #ifndef _RIVE_VIEW_MODEL_INSTANCE_LIST_BASE_HPP_
 #define _RIVE_VIEW_MODEL_INSTANCE_LIST_BASE_HPP_
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
+#include "rive/core/field_types/core_uint_type.hpp"
 #include "rive/viewmodel/viewmodel_instance_value.hpp"
 namespace rive
 {
@@ -33,19 +32,18 @@ public:
     static const uint16_t listSourcePropertyKey = 966;
 
 protected:
-    Id m_ListSource = kEmptyId;
+    uint32_t m_ListSource = -1;
 
 public:
-    inline Id listSource() const { return m_ListSource; }
-    void listSource(Id value)
+    inline uint32_t listSource() const { return m_ListSource; }
+    void listSource(uint32_t value)
     {
         if (m_ListSource == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(listSourcePropertyKey, &m_ListSource, &value);
         m_ListSource = value;
-        RIVE_EDITOR_CHANGED(listSourceChanged());
+        listSourceChanged();
         notifyPropertyChanged(listSourcePropertyKey);
     }
 
@@ -61,7 +59,7 @@ public:
         switch (propertyKey)
         {
             case listSourcePropertyKey:
-                m_ListSource = CoreIdType::runtimeDeserialize(reader);
+                m_ListSource = CoreUintType::deserialize(reader);
                 return true;
         }
         return ViewModelInstanceValue::deserialize(propertyKey, reader);
@@ -69,9 +67,6 @@ public:
 
 protected:
     virtual void listSourceChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/viewmodel/viewmodel_instance_list_ext.inl"
-#endif
 };
 } // namespace rive
 

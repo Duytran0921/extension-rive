@@ -48,9 +48,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(xPropertyKey, &m_X, &value);
         m_X = value;
-        RIVE_EDITOR_CHANGED(xChanged());
+        xChanged();
         notifyPropertyChanged(xPropertyKey);
     }
 
@@ -61,9 +60,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(yPropertyKey, &m_Y, &value);
         m_Y = value;
-        RIVE_EDITOR_CHANGED(yChanged());
+        yChanged();
         notifyPropertyChanged(yPropertyKey);
     }
 
@@ -92,9 +90,6 @@ public:
 protected:
     virtual void xChanged() {}
     virtual void yChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/bones/root_bone_ext.inl"
-#endif
 };
 } // namespace rive
 

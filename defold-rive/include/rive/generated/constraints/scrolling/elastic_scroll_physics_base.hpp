@@ -46,9 +46,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(frictionPropertyKey, &m_Friction, &value);
         m_Friction = value;
-        RIVE_EDITOR_CHANGED(frictionChanged());
+        frictionChanged();
         notifyPropertyChanged(frictionPropertyKey);
     }
 
@@ -59,11 +58,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(speedMultiplierPropertyKey,
-                             &m_SpeedMultiplier,
-                             &value);
         m_SpeedMultiplier = value;
-        RIVE_EDITOR_CHANGED(speedMultiplierChanged());
+        speedMultiplierChanged();
         notifyPropertyChanged(speedMultiplierPropertyKey);
     }
 
@@ -74,11 +70,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(elasticFactorPropertyKey,
-                             &m_ElasticFactor,
-                             &value);
         m_ElasticFactor = value;
-        RIVE_EDITOR_CHANGED(elasticFactorChanged());
+        elasticFactorChanged();
         notifyPropertyChanged(elasticFactorPropertyKey);
     }
 
@@ -112,9 +105,6 @@ protected:
     virtual void frictionChanged() {}
     virtual void speedMultiplierChanged() {}
     virtual void elasticFactorChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/constraints/scrolling/elastic_scroll_physics_ext.inl"
-#endif
 };
 } // namespace rive
 

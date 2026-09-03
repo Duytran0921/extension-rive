@@ -1,8 +1,7 @@
 #ifndef _RIVE_NESTED_INPUT_BASE_HPP_
 #define _RIVE_NESTED_INPUT_BASE_HPP_
 #include "rive/component.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
+#include "rive/core/field_types/core_uint_type.hpp"
 namespace rive
 {
 class NestedInputBase : public Component
@@ -32,19 +31,18 @@ public:
     static const uint16_t inputIdPropertyKey = 237;
 
 protected:
-    Id m_InputId = kEmptyId;
+    uint32_t m_InputId = -1;
 
 public:
-    inline Id inputId() const { return m_InputId; }
-    void inputId(Id value)
+    inline uint32_t inputId() const { return m_InputId; }
+    void inputId(uint32_t value)
     {
         if (m_InputId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(inputIdPropertyKey, &m_InputId, &value);
         m_InputId = value;
-        RIVE_EDITOR_CHANGED(inputIdChanged());
+        inputIdChanged();
         notifyPropertyChanged(inputIdPropertyKey);
     }
 
@@ -59,7 +57,7 @@ public:
         switch (propertyKey)
         {
             case inputIdPropertyKey:
-                m_InputId = CoreIdType::runtimeDeserialize(reader);
+                m_InputId = CoreUintType::deserialize(reader);
                 return true;
         }
         return Component::deserialize(propertyKey, reader);
@@ -67,9 +65,6 @@ public:
 
 protected:
     virtual void inputIdChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/nested_input_ext.inl"
-#endif
 };
 } // namespace rive
 

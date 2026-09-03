@@ -52,9 +52,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(fitPropertyKey, &m_Fit, &value);
         m_Fit = value;
-        RIVE_EDITOR_CHANGED(fitChanged());
+        fitChanged();
         notifyPropertyChanged(fitPropertyKey);
     }
 
@@ -65,9 +64,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(alignmentXPropertyKey, &m_AlignmentX, &value);
         m_AlignmentX = value;
-        RIVE_EDITOR_CHANGED(alignmentXChanged());
+        alignmentXChanged();
         notifyPropertyChanged(alignmentXPropertyKey);
     }
 
@@ -78,9 +76,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(alignmentYPropertyKey, &m_AlignmentY, &value);
         m_AlignmentY = value;
-        RIVE_EDITOR_CHANGED(alignmentYChanged());
+        alignmentYChanged();
         notifyPropertyChanged(alignmentYPropertyKey);
     }
 
@@ -114,9 +111,6 @@ protected:
     virtual void fitChanged() {}
     virtual void alignmentXChanged() {}
     virtual void alignmentYChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/nested_artboard_leaf_ext.inl"
-#endif
 };
 } // namespace rive
 
