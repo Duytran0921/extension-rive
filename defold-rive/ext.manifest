@@ -3,7 +3,27 @@ name: RiveExt
 platforms:
     common:
         context:
-            defines:    []
+            # The core libs under defold-rive/lib are always built with
+            # scripting on - utils/rive-runtime/buildscripts/build_*.sh pass
+            # --with_rive_scripting unconditionally, and libluau_vm.a sits in
+            # every platform folder as proof. This extension's own sources
+            # were not being given the same define, which was harmless until
+            # rive-runtime v0.1.164 put a scripting-only parameter on
+            # CommandQueue::loadFile:
+            #
+            #   FileHandle loadFile(std::vector<uint8_t>, FileListener*,
+            #                       uint64_t
+            #   #ifdef WITH_RIVE_SCRIPTING
+            #                       , ScriptingContextFactory
+            #   #endif
+            #                      );
+            #
+            # so the lib exported the four-argument symbol while res_rive_data
+            # and script_rive_cmd called the three-argument one, and the link
+            # failed with "undefined symbol: rive::CommandQueue::loadFile".
+            # Defining it here is what makes both halves agree, not a way of
+            # turning scripting on - it is already on.
+            defines:    ["WITH_RIVE_SCRIPTING"]
             symbols:    ["ResourceTypeRiveScene", "ResourceTypeRiveModel", "ResourceTypeRiveData", "ComponentTypeRive"]
 
     linux:
@@ -63,4 +83,3 @@ platforms:
     armv7-android:
         context:
             defines:            ["DM_UNSUPPORTED_PLATFORM"]
-
