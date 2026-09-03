@@ -17,10 +17,6 @@ public:
     TransformSpace space() const { return (TransformSpace)spaceValue(); }
     void buildDependencies() override;
 
-    /// Inner feathering only applies to fills; a stroke has no interior to
-    /// fill so it always feathers outward regardless of the stored value.
-    bool isInner() const;
-
     ShapePaintPath* innerPath() { return &m_innerPath; }
     void rebuildInnerPath(const ShapePaintPath* path,
                           const Mat2D& shapeTransform,
@@ -28,10 +24,6 @@ public:
 
     bool effectPathDirty() const { return m_effectPathDirty; }
     void markEffectPathDirty() { m_effectPathDirty = true; }
-#ifdef WITH_RIVE_EDITOR
-    void editorParentChanged(ContainerComponent* from,
-                             ContainerComponent* to) override;
-#endif
 
 protected:
     void strengthChanged() override;

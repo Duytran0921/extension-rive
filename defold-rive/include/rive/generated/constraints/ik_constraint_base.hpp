@@ -46,11 +46,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(invertDirectionPropertyKey,
-                             &m_InvertDirection,
-                             &value);
         m_InvertDirection = value;
-        RIVE_EDITOR_CHANGED(invertDirectionChanged());
+        invertDirectionChanged();
         notifyPropertyChanged(invertDirectionPropertyKey);
     }
 
@@ -61,11 +58,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(parentBoneCountPropertyKey,
-                             &m_ParentBoneCount,
-                             &value);
         m_ParentBoneCount = value;
-        RIVE_EDITOR_CHANGED(parentBoneCountChanged());
+        parentBoneCountChanged();
         notifyPropertyChanged(parentBoneCountPropertyKey);
     }
 
@@ -94,9 +88,6 @@ public:
 protected:
     virtual void invertDirectionChanged() {}
     virtual void parentBoneCountChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/constraints/ik_constraint_ext.inl"
-#endif
 };
 } // namespace rive
 

@@ -2,11 +2,7 @@
 #define _RIVE_TEXT_STYLE_BASE_HPP_
 #include "rive/container_component.hpp"
 #include "rive/core/field_types/core_double_type.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/editor_field_types.hpp"
-#endif
+#include "rive/core/field_types/core_uint_type.hpp"
 namespace rive
 {
 class TextStyleBase : public ContainerComponent
@@ -43,7 +39,7 @@ protected:
     float m_FontSize = 12.0f;
     float m_LineHeight = -1.0f;
     float m_LetterSpacing = 0.0f;
-    Id m_FontAssetId = kEmptyId;
+    uint32_t m_FontAssetId = -1;
 
 public:
     inline float fontSize() const { return m_FontSize; }
@@ -53,9 +49,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(fontSizePropertyKey, &m_FontSize, &value);
         m_FontSize = value;
-        RIVE_EDITOR_CHANGED(fontSizeChanged());
+        fontSizeChanged();
         notifyPropertyChanged(fontSizePropertyKey);
     }
 
@@ -66,9 +61,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(lineHeightPropertyKey, &m_LineHeight, &value);
         m_LineHeight = value;
-        RIVE_EDITOR_CHANGED(lineHeightChanged());
+        lineHeightChanged();
         notifyPropertyChanged(lineHeightPropertyKey);
     }
 
@@ -79,24 +73,20 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(letterSpacingPropertyKey,
-                             &m_LetterSpacing,
-                             &value);
         m_LetterSpacing = value;
-        RIVE_EDITOR_CHANGED(letterSpacingChanged());
+        letterSpacingChanged();
         notifyPropertyChanged(letterSpacingPropertyKey);
     }
 
-    inline Id fontAssetId() const { return m_FontAssetId; }
-    void fontAssetId(Id value)
+    inline uint32_t fontAssetId() const { return m_FontAssetId; }
+    void fontAssetId(uint32_t value)
     {
         if (m_FontAssetId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(fontAssetIdPropertyKey, &m_FontAssetId, &value);
         m_FontAssetId = value;
-        RIVE_EDITOR_CHANGED(fontAssetIdChanged());
+        fontAssetIdChanged();
         notifyPropertyChanged(fontAssetIdPropertyKey);
     }
 
@@ -107,7 +97,6 @@ public:
         m_LineHeight = object.m_LineHeight;
         m_LetterSpacing = object.m_LetterSpacing;
         m_FontAssetId = object.m_FontAssetId;
-        RIVE_EDITOR_COPY(object);
         ContainerComponent::copy(object);
     }
 
@@ -125,10 +114,9 @@ public:
                 m_LetterSpacing = CoreDoubleType::deserialize(reader);
                 return true;
             case fontAssetIdPropertyKey:
-                m_FontAssetId = CoreIdType::runtimeDeserialize(reader);
+                m_FontAssetId = CoreUintType::deserialize(reader);
                 return true;
         }
-        RIVE_EDITOR_DESERIALIZE(propertyKey, reader);
         return ContainerComponent::deserialize(propertyKey, reader);
     }
 
@@ -137,9 +125,6 @@ protected:
     virtual void lineHeightChanged() {}
     virtual void letterSpacingChanged() {}
     virtual void fontAssetIdChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/text/text_style_ext.inl"
-#endif
 };
 } // namespace rive
 

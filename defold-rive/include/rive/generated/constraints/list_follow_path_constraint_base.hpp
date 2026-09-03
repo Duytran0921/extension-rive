@@ -47,9 +47,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(distanceEndPropertyKey, &m_DistanceEnd, &value);
         m_DistanceEnd = value;
-        RIVE_EDITOR_CHANGED(distanceEndChanged());
+        distanceEndChanged();
         notifyPropertyChanged(distanceEndPropertyKey);
     }
 
@@ -60,11 +59,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(distanceOffsetPropertyKey,
-                             &m_DistanceOffset,
-                             &value);
         m_DistanceOffset = value;
-        RIVE_EDITOR_CHANGED(distanceOffsetChanged());
+        distanceOffsetChanged();
         notifyPropertyChanged(distanceOffsetPropertyKey);
     }
 
@@ -93,9 +89,6 @@ public:
 protected:
     virtual void distanceEndChanged() {}
     virtual void distanceOffsetChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/constraints/list_follow_path_constraint_ext.inl"
-#endif
 };
 } // namespace rive
 

@@ -1,7 +1,6 @@
 #ifndef _RIVE_VIEW_MODEL_PROPERTY_ENUM_CUSTOM_BASE_HPP_
 #define _RIVE_VIEW_MODEL_PROPERTY_ENUM_CUSTOM_BASE_HPP_
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
+#include "rive/core/field_types/core_uint_type.hpp"
 #include "rive/viewmodel/viewmodel_property_enum.hpp"
 namespace rive
 {
@@ -34,19 +33,18 @@ public:
     static const uint16_t enumIdPropertyKey = 574;
 
 protected:
-    Id m_EnumId = kEmptyId;
+    uint32_t m_EnumId = -1;
 
 public:
-    inline Id enumId() const { return m_EnumId; }
-    void enumId(Id value)
+    inline uint32_t enumId() const { return m_EnumId; }
+    void enumId(uint32_t value)
     {
         if (m_EnumId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(enumIdPropertyKey, &m_EnumId, &value);
         m_EnumId = value;
-        RIVE_EDITOR_CHANGED(enumIdChanged());
+        enumIdChanged();
         notifyPropertyChanged(enumIdPropertyKey);
     }
 
@@ -62,7 +60,7 @@ public:
         switch (propertyKey)
         {
             case enumIdPropertyKey:
-                m_EnumId = CoreIdType::runtimeDeserialize(reader);
+                m_EnumId = CoreUintType::deserialize(reader);
                 return true;
         }
         return ViewModelPropertyEnum::deserialize(propertyKey, reader);
@@ -70,9 +68,6 @@ public:
 
 protected:
     virtual void enumIdChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/viewmodel/viewmodel_property_enum_custom_ext.inl"
-#endif
 };
 } // namespace rive
 

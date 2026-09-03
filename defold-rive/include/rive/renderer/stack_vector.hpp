@@ -77,20 +77,6 @@ public:
         return dst;
     }
 
-    // Insert 'ele' at 'index', shifting subsequent elements up. 'index' may
-    // equal size() (equivalent to push_back). Returns a reference to the newly
-    // inserted element.
-    T& insert(uint32_t index, const T& ele)
-    {
-        assert(index <= m_size);
-        push(1);
-        memmove(&m_data[index + 1],
-                &m_data[index],
-                (m_size - 1 - index) * sizeof(T));
-        m_data[index] = ele;
-        return m_data[index];
-    }
-
     const T* data() const { return m_data; }
     T* data() { return m_data; }
 
@@ -123,7 +109,6 @@ private:
     }
 
     // Currently only supports POD types.
-    static_assert(std::is_trivial<T>() && std::is_standard_layout<T>(),
-                  "StackVector only supports trivial types.");
+    static_assert(std::is_pod<T>::value == true);
 };
 } // namespace rive

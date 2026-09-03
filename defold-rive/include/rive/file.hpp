@@ -3,7 +3,6 @@
 
 #include "rive/artboard.hpp"
 #include "rive/backboard.hpp"
-#include "rive/scripting_slots.hpp"
 #include "rive/factory.hpp"
 #include "rive/file_asset_loader.hpp"
 #include "rive/assets/manifest_asset.hpp"
@@ -41,10 +40,6 @@ class ScrollPhysics;
 class ViewModelRuntime;
 class BindableArtboard;
 class ScriptingVM;
-class ScriptingContext;
-#ifdef WITH_RIVE_SCRIPTING_WASM
-class WasmScriptingVM;
-#endif
 class ScriptedInterpolator;
 
 ///
@@ -88,10 +83,7 @@ public:
     /// Minor version number supported by the runtime.
     /// 7.2: images in a layout apply their fit as a separate scale, leaving
     /// the user-facing scaleX/scaleY free to be edited/animated on top.
-    /// 7.3: layouts compose their own rotation/scale on top of the solved
-    /// slot. Older files wrote those properties but never applied them, so
-    /// they only carry intent at or above this version.
-    static const int minorVersion = 3;
+    static const int minorVersion = 2;
     /// deterministicMode sets a static seed for randomization and uses
     /// timestamps for scrolling.
     static bool deterministicMode;
@@ -137,6 +129,7 @@ public:
 
     Span<const rcp<FileAsset>> assets() const;
 
+    // Instances
     std::unique_ptr<ArtboardInstance> artboardDefault() const;
     std::unique_ptr<ArtboardInstance> artboardAt(size_t index) const;
     std::unique_ptr<ArtboardInstance> artboardNamed(std::string name) const;
@@ -186,17 +179,7 @@ public:
 
     size_t viewModelCount() const { return m_ViewModels.size(); }
     ViewModel* viewModel(std::string name);
-    ViewModel* viewModel(size_t index) const;
-    /// @returns the file index (definition order) of the view model with the
-    /// given name — the slot key used for data-context slots — or the view
-    /// model count if no such view model exists.
-    uint32_t viewModelId(const std::string& name) const;
-    /// @returns the global view models (viewModelType == global), in file
-    /// reference order.
-    std::vector<ViewModel*> globalViewModels() const;
-    /// @returns the names of the global view models (viewModelType == global),
-    /// in file reference order.
-    std::vector<std::string> globalViewModelNames() const;
+    ViewModel* viewModel(size_t index);
     ViewModelRuntime* defaultArtboardViewModel(Artboard* artboard) const;
     ViewModelRuntime* viewModelByIndex(size_t index) const;
     ViewModelRuntime* viewModelByName(std::string name) const;
@@ -224,7 +207,7 @@ public:
     // to the VM that we can use. If this is nullptr, we can assume
     // we are running in the runtime and should instance our own VMs
     // and pass them down to the root
-#ifdef WITH_RIVE_SCRIPTING_LUAU
+#ifdef WITH_RIVE_SCRIPTING
     /// Sets or replaces the ScriptingVM. Takes shared ownership via rcp.
     void setScriptingVM(rcp<ScriptingVM> vm);
 
@@ -281,10 +264,8 @@ private:
     std::unique_ptr<ArtboardInstance> instanceArtboard(Artboard* ab) const;
 
     /// The file's backboard. All Rive files have a single backboard
-    /// where the artboards live. Initialized to null so that a File which
-    /// is destroyed after a failed/partial import (before a Backboard object
-    /// has been read) does not `delete` an uninitialized pointer.
-    Backboard* m_backboard = nullptr;
+    /// where the artboards live.
+    Backboard* m_backboard;
 
     /// We just keep these alive for the life of this File
     std::vector<rcp<FileAsset>> m_fileAssets;
@@ -318,46 +299,10 @@ private:
     rcp<FileAssetLoader> m_assetLoader;
 
 #ifdef WITH_RIVE_SCRIPTING
-    void registerScripts();
-#endif
-#ifdef WITH_RIVE_SCRIPTING
-    [[maybe_unused]] ScriptingVMSlot m_scriptingVM = nullptr;
-#endif
-#ifdef WITH_RIVE_SCRIPTING_LUAU
+    rcp<ScriptingVM> m_scriptingVM;
     void makeScriptingVM();
     void cleanupScriptingVM();
-    void routeScriptingToImportFactory(ScriptingContext* context);
-#endif
-#ifdef WITH_RIVE_SCRIPTING_WASM
-public:
-    // One VM per script module asset; mixed language files carry one per
-    // language and each ScriptAsset resolves through its own module's VM.
-    /// Editor preview lane: replace the file's wasm VMs with one built
-    /// outside import (requestWasmVM), rebinding every ScriptAsset to it.
-    /// Ownership transfers to the file, matching import-time VMs.
-    void adoptWasmScriptingVM(std::unique_ptr<WasmScriptingVM> vm);
-    /// Apply a module registration ref from the editor lane to the
-    /// ScriptAsset carrying moduleName; returns false when none matches.
-    bool applyWasmRegistration(const std::string& moduleName, int ref);
-
-    WasmScriptingVM* wasmScriptingVM()
-    {
-        return m_wasmVMs.empty() ? nullptr : m_wasmVMs.front().get();
-    }
-    const std::vector<std::unique_ptr<WasmScriptingVM>>& wasmVMs() const
-    {
-        return m_wasmVMs;
-    }
-
-    /// Per-frame service for every wasm VM: arena rewind, handle reap, and
-    /// leak warnings. Call once per frame, between frames; returns the
-    /// first warning to surface, if any.
-    const char* frameBoundary();
-
-private:
-#endif
-#ifdef WITH_RIVE_SCRIPTING
-    WasmVMsSlot m_wasmVMs;
+    void registerScripts();
 #endif
 
     rcp<ViewModelInstance> copyViewModelInstance(

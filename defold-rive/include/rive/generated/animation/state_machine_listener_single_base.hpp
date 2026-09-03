@@ -2,13 +2,8 @@
 #define _RIVE_STATE_MACHINE_LISTENER_SINGLE_BASE_HPP_
 #include "rive/animation/state_machine_listener.hpp"
 #include "rive/core/field_types/core_bytes_type.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
 #include "rive/core/field_types/core_uint_type.hpp"
-#include "rive/core/id.hpp"
 #include "rive/span.hpp"
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/editor_field_types.hpp"
-#endif
 namespace rive
 {
 class StateMachineListenerSingleBase : public StateMachineListener
@@ -42,7 +37,7 @@ public:
 
 protected:
     uint32_t m_ListenerTypeValue = 0;
-    Id m_EventId = kEmptyId;
+    uint32_t m_EventId = -1;
 
 public:
     inline uint32_t listenerTypeValue() const { return m_ListenerTypeValue; }
@@ -52,24 +47,20 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(listenerTypeValuePropertyKey,
-                             &m_ListenerTypeValue,
-                             &value);
         m_ListenerTypeValue = value;
-        RIVE_EDITOR_CHANGED(listenerTypeValueChanged());
+        listenerTypeValueChanged();
         notifyPropertyChanged(listenerTypeValuePropertyKey);
     }
 
-    inline Id eventId() const { return m_EventId; }
-    void eventId(Id value)
+    inline uint32_t eventId() const { return m_EventId; }
+    void eventId(uint32_t value)
     {
         if (m_EventId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(eventIdPropertyKey, &m_EventId, &value);
         m_EventId = value;
-        RIVE_EDITOR_CHANGED(eventIdChanged());
+        eventIdChanged();
         notifyPropertyChanged(eventIdPropertyKey);
     }
 
@@ -83,7 +74,6 @@ public:
         m_ListenerTypeValue = object.m_ListenerTypeValue;
         m_EventId = object.m_EventId;
         copyViewModelPathIds(object);
-        RIVE_EDITOR_COPY(object);
         StateMachineListener::copy(object);
     }
 
@@ -95,13 +85,12 @@ public:
                 m_ListenerTypeValue = CoreUintType::deserialize(reader);
                 return true;
             case eventIdPropertyKey:
-                m_EventId = CoreIdType::runtimeDeserialize(reader);
+                m_EventId = CoreUintType::deserialize(reader);
                 return true;
             case viewModelPathIdsPropertyKey:
                 decodeViewModelPathIds(CoreBytesType::deserialize(reader));
                 return true;
         }
-        RIVE_EDITOR_DESERIALIZE(propertyKey, reader);
         return StateMachineListener::deserialize(propertyKey, reader);
     }
 
@@ -109,9 +98,6 @@ protected:
     virtual void listenerTypeValueChanged() {}
     virtual void eventIdChanged() {}
     virtual void viewModelPathIdsChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/state_machine_listener_single_ext.inl"
-#endif
 };
 } // namespace rive
 

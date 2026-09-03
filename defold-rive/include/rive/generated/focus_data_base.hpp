@@ -50,63 +50,11 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(focusFlagsPropertyKey, &m_FocusFlags, &value);
         m_FocusFlags = value;
-        RIVE_EDITOR_CHANGED(focusFlagsChanged());
+        focusFlagsChanged();
         notifyPropertyChanged(focusFlagsPropertyKey);
     }
 
-    inline bool canFocus() const
-    {
-        return (m_FocusFlags & canFocusBitmask) != 0;
-    }
-    void canFocus(bool value)
-    {
-        const bool prev = (m_FocusFlags & canFocusBitmask) != 0;
-        if (prev == value)
-        {
-            return;
-        }
-        RIVE_EDITOR_CHANGING(canFocusPropertyKey, &prev, &value);
-        m_FocusFlags = value ? (m_FocusFlags | canFocusBitmask)
-                             : (m_FocusFlags & ~canFocusBitmask);
-        RIVE_EDITOR_CHANGED(focusFlagsChanged());
-        notifyPropertyChanged(focusFlagsPropertyKey);
-    }
-    inline bool canTouch() const
-    {
-        return (m_FocusFlags & canTouchBitmask) != 0;
-    }
-    void canTouch(bool value)
-    {
-        const bool prev = (m_FocusFlags & canTouchBitmask) != 0;
-        if (prev == value)
-        {
-            return;
-        }
-        RIVE_EDITOR_CHANGING(canTouchPropertyKey, &prev, &value);
-        m_FocusFlags = value ? (m_FocusFlags | canTouchBitmask)
-                             : (m_FocusFlags & ~canTouchBitmask);
-        RIVE_EDITOR_CHANGED(focusFlagsChanged());
-        notifyPropertyChanged(focusFlagsPropertyKey);
-    }
-    inline bool canTraverse() const
-    {
-        return (m_FocusFlags & canTraverseBitmask) != 0;
-    }
-    void canTraverse(bool value)
-    {
-        const bool prev = (m_FocusFlags & canTraverseBitmask) != 0;
-        if (prev == value)
-        {
-            return;
-        }
-        RIVE_EDITOR_CHANGING(canTraversePropertyKey, &prev, &value);
-        m_FocusFlags = value ? (m_FocusFlags | canTraverseBitmask)
-                             : (m_FocusFlags & ~canTraverseBitmask);
-        RIVE_EDITOR_CHANGED(focusFlagsChanged());
-        notifyPropertyChanged(focusFlagsPropertyKey);
-    }
     inline uint32_t edgeBehaviorValue() const { return m_EdgeBehaviorValue; }
     void edgeBehaviorValue(uint32_t value)
     {
@@ -114,11 +62,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(edgeBehaviorValuePropertyKey,
-                             &m_EdgeBehaviorValue,
-                             &value);
         m_EdgeBehaviorValue = value;
-        RIVE_EDITOR_CHANGED(edgeBehaviorValueChanged());
+        edgeBehaviorValueChanged();
         notifyPropertyChanged(edgeBehaviorValuePropertyKey);
     }
 
@@ -147,9 +92,6 @@ public:
 protected:
     virtual void focusFlagsChanged() {}
     virtual void edgeBehaviorValueChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/focus_data_ext.inl"
-#endif
 };
 } // namespace rive
 

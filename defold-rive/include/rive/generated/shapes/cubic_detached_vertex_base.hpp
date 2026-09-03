@@ -51,9 +51,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(inRotationPropertyKey, &m_InRotation, &value);
         m_InRotation = value;
-        RIVE_EDITOR_CHANGED(inRotationChanged());
+        inRotationChanged();
         notifyPropertyChanged(inRotationPropertyKey);
     }
 
@@ -64,9 +63,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(inDistancePropertyKey, &m_InDistance, &value);
         m_InDistance = value;
-        RIVE_EDITOR_CHANGED(inDistanceChanged());
+        inDistanceChanged();
         notifyPropertyChanged(inDistancePropertyKey);
     }
 
@@ -77,9 +75,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(outRotationPropertyKey, &m_OutRotation, &value);
         m_OutRotation = value;
-        RIVE_EDITOR_CHANGED(outRotationChanged());
+        outRotationChanged();
         notifyPropertyChanged(outRotationPropertyKey);
     }
 
@@ -90,9 +87,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(outDistancePropertyKey, &m_OutDistance, &value);
         m_OutDistance = value;
-        RIVE_EDITOR_CHANGED(outDistanceChanged());
+        outDistanceChanged();
         notifyPropertyChanged(outDistancePropertyKey);
     }
 
@@ -131,9 +127,6 @@ protected:
     virtual void inDistanceChanged() {}
     virtual void outRotationChanged() {}
     virtual void outDistanceChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/shapes/cubic_detached_vertex_ext.inl"
-#endif
 };
 } // namespace rive
 

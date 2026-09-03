@@ -57,9 +57,6 @@ public:
 
 protected:
     virtual void sourcePathIdsChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/data_bind/converters/data_converter_operation_viewmodel_ext.inl"
-#endif
 };
 } // namespace rive
 

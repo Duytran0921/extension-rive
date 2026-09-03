@@ -41,9 +41,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(enumTypePropertyKey, &m_EnumType, &value);
         m_EnumType = value;
-        RIVE_EDITOR_CHANGED(enumTypeChanged());
+        enumTypeChanged();
         notifyPropertyChanged(enumTypePropertyKey);
     }
 
@@ -67,9 +66,6 @@ public:
 
 protected:
     virtual void enumTypeChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/viewmodel/data_enum_system_ext.inl"
-#endif
 };
 } // namespace rive
 

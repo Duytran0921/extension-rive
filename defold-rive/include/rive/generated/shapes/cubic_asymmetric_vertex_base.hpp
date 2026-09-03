@@ -49,9 +49,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(rotationPropertyKey, &m_Rotation, &value);
         m_Rotation = value;
-        RIVE_EDITOR_CHANGED(rotationChanged());
+        rotationChanged();
         notifyPropertyChanged(rotationPropertyKey);
     }
 
@@ -62,9 +61,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(inDistancePropertyKey, &m_InDistance, &value);
         m_InDistance = value;
-        RIVE_EDITOR_CHANGED(inDistanceChanged());
+        inDistanceChanged();
         notifyPropertyChanged(inDistancePropertyKey);
     }
 
@@ -75,9 +73,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(outDistancePropertyKey, &m_OutDistance, &value);
         m_OutDistance = value;
-        RIVE_EDITOR_CHANGED(outDistanceChanged());
+        outDistanceChanged();
         notifyPropertyChanged(outDistancePropertyKey);
     }
 
@@ -111,9 +108,6 @@ protected:
     virtual void rotationChanged() {}
     virtual void inDistanceChanged() {}
     virtual void outDistanceChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/shapes/cubic_asymmetric_vertex_ext.inl"
-#endif
 };
 } // namespace rive
 

@@ -8,40 +8,40 @@
 
 namespace rive
 {
-class FileAsset;
+class TextAsset;
 class TextAssetImporter;
 
-/// A single in-band payload (Luau bytecode, RSTB blob, or a wasm script
-/// module) captured during import, held until the aggregate signature is
-/// verified in resolve().
+/// A single in-band payload (Luau bytecode or RSTB blob) captured during
+/// import, held until the aggregate signature is verified in resolve().
 class InBandContent
 {
     friend class TextAssetImporter;
 
 public:
-    InBandContent(FileAsset* asset, SimpleArray<uint8_t>& bytes);
+    InBandContent(TextAsset* asset, SimpleArray<uint8_t>& bytes);
 
 private:
-    FileAsset* m_asset;
+    TextAsset* m_textAsset;
     SimpleArray<uint8_t> m_bytes;
 };
 
-/// Importer shared by every signed code-derived asset (ScriptAsset,
-/// ShaderAsset, ScriptModuleAsset). Strips the SignedContentHeader envelope
-/// from in-band FileAssetContents and contributes the raw content bytes to a
-/// shared verification set. The last importer with a signature runs
-/// hydro_sign_verify against the concatenated bytes and marks every
-/// participating asset as verified.
+/// Importer shared by all TextAsset subclasses (ScriptAsset, ShaderAsset).
+/// Strips the SignedContentHeader envelope from in-band FileAssetContents and
+/// contributes the raw content bytes to a shared verification set. The last
+/// importer with a signature runs hydro_sign_verify against the concatenated
+/// bytes and marks every participating asset as verified.
 class TextAssetImporter : public FileAssetImporter
 {
 public:
-    TextAssetImporter(FileAsset*,
+    TextAssetImporter(TextAsset*,
                       rcp<FileAssetLoader>,
                       Factory*,
                       std::vector<InBandContent>*);
     StatusCode resolve() override;
     void onFileAssetContents(
         std::unique_ptr<FileAssetContents> contents) override;
+
+    TextAsset* textAsset();
 
 private:
     // The set of in-band contents which are signed together.

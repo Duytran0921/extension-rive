@@ -41,9 +41,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(valuePropertyKey, &m_Value, &value);
         m_Value = value;
-        RIVE_EDITOR_CHANGED(valueChanged());
+        valueChanged();
         notifyPropertyChanged(valuePropertyKey);
     }
 
@@ -67,9 +66,6 @@ public:
 
 protected:
     virtual void valueChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/blend_animation_1d_ext.inl"
-#endif
 };
 } // namespace rive
 

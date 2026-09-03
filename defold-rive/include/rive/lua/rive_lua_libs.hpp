@@ -2,7 +2,6 @@
 #ifndef _RIVE_LUA_LIBS_HPP_
 #define _RIVE_LUA_LIBS_HPP_
 #include "lua.h"
-#include "rive/text_engine.hpp"
 #include "lualib.h"
 #include "rive/animation/linear_animation_instance.hpp"
 #include "rive/assets/file_asset.hpp"
@@ -72,10 +71,6 @@ class ModuleDetails;
 class ScriptedObject;
 class StateMachineInstance;
 class TransformComponent;
-namespace cmd
-{
-class DeferredCanvasHost;
-}
 enum class LuaAtoms : int16_t
 {
     // Vector
@@ -176,8 +171,6 @@ enum class LuaAtoms : int16_t
     getEnum,
     getIndex,
     getImage,
-    getFont,
-    getBlob,
     values,
     addListener,
     removeListener,
@@ -241,8 +234,6 @@ enum class LuaAtoms : int16_t
     markNeedsUpdate,
     viewModel,
     rootViewModel,
-    globalViewModel,
-    globalViewModelNames,
     image,
     blob,
     size,
@@ -333,6 +324,7 @@ enum class LuaAtoms : int16_t
     resize,
     canvas,
     gpuCanvas,
+    drawCanvas,
     features,
     shader,
     format,
@@ -520,10 +512,6 @@ namespace ore
 {
 class TextureView;
 }
-namespace gpu
-{
-class RenderCanvas;
-}
 #endif
 
 class ScriptedImage
@@ -533,9 +521,14 @@ public:
 #if defined(RIVE_CANVAS) && defined(RIVE_ORE)
     rcp<ore::TextureView> cachedOreView; // Cached for Image:view() to avoid
                                          // leaking D3D12 CPU descriptors.
-    // Set when this image is a canvas's backing, so Image:view() imports
-    // through the backend's canvas sampling wrap rather than the raw texture.
-    rcp<gpu::RenderCanvas> sourceCanvas;
+#if defined(ORE_BACKEND_GL)
+    // GL only: when the source image is a Rive 2D RenderCanvas, the GL
+    // backend's getCanvasImportMirror returns a Y-flipped companion
+    // image. We hold a strong rcp here so the companion stays alive for
+    // the lifetime of this ScriptedImage. The view in cachedOreView wraps
+    // the companion's texture, not the source's.
+    rcp<RenderImage> cachedMirrorImage;
+#endif
 #endif
     // Out-of-line destructor — when ore is enabled, defined in lua_gpu.cpp
     // where ore::TextureView is complete. Otherwise defined in lua_image.cpp.
@@ -795,7 +788,7 @@ class ScriptedGPUTextureView
 public:
     static constexpr uint8_t luaTag = LUA_T_COUNT + 51;
     static constexpr const char* luaName = "GPUTextureView";
-    static constexpr bool hasMetatable = true;
+    static constexpr bool hasMetatable = false;
     rcp<ore::TextureView> view;
     // When created from Image:view(), retains the RenderImage so the
     // underlying gpu::Texture stays alive even if the Image is GC'd.
@@ -817,12 +810,6 @@ public:
     lua_State* m_L = nullptr;
     int m_imageRef = LUA_NOREF;
     gpu::RenderContext* renderCtx = nullptr; // needed for resize()
-    // Size a resize() asked for while no device existed. Web attaches one per
-    // render texture after layout has already run, and a generator resizes
-    // once, so the request is held here and honoured on the first access after
-    // a device appears. Zero once satisfied.
-    uint32_t pendingWidth = 0;
-    uint32_t pendingHeight = 0;
 };
 
 #endif // RIVE_ORE
@@ -844,22 +831,12 @@ public:
     lua_State* m_L = nullptr;
     int m_imageRef = LUA_NOREF;
     gpu::RenderContext* renderCtx = nullptr;
-    // See ScriptedGPUCanvas::pendingWidth.
-    uint32_t pendingWidth = 0;
-    uint32_t pendingHeight = 0;
     CanvasState m_state = CanvasState::Idle;
     // Allocated on beginFrame(), deleted on endFrame(). Wraps renderCtx.
-    // Null in deferred mode, content records into the stream instead.
     RiveRenderer* m_riveRenderer = nullptr;
-    // Set on beginFrame() when a deferred host is recording, endFrame()
-    // routes through it instead of the real flush. Null means immediate.
-    cmd::DeferredCanvasHost* m_deferredHost = nullptr;
     // Lua registry ref to the ScriptedRenderer pushed by beginFrame(),
     // kept alive until endFrame() so the Lua renderer stays valid.
     int m_rendererRef = LUA_NOREF;
-    // Registry ref while the frame is open so post-error cleanup can close
-    // it and GC cannot collect it mid-frame.
-    int m_openFrameRef = LUA_NOREF;
 };
 #endif // RIVE_CANVAS
 
@@ -1100,29 +1077,16 @@ public:
                          std::unique_ptr<ArtboardInstance>&& artboardInstance,
                          rcp<ViewModelInstance> viewModelInstance,
                          rcp<DataContext> parentDataContext,
-                         ScriptingContext* scriptingContext
-#ifdef WITH_RIVE_TOOLS
-                         ,
-                         rcp<File> filePin = nullptr
-#endif
-    );
+                         ScriptingContext* scriptingContext);
 
     ~ScriptReffedArtboard();
     rive::File* file();
     Artboard* artboard();
     StateMachineInstance* stateMachine();
     rcp<ViewModelInstance> viewModelInstance() { return m_viewModelInstance; }
-#ifdef WITH_RIVE_TOOLS
-    rcp<File> filePin() { return m_filePin; }
-#endif
 
 private:
     File* m_file;
-#ifdef WITH_RIVE_TOOLS
-    // Pins a host file the script does not own. Never set for the script's
-    // own file: that would cycle File -> VM -> userdata -> File and leak.
-    rcp<File> m_filePin;
-#endif
     std::unique_ptr<ArtboardInstance> m_artboard;
     std::unique_ptr<StateMachineInstance> m_stateMachine;
     rcp<ViewModelInstance> m_viewModelInstance;
@@ -1136,12 +1100,7 @@ public:
                      File* file,
                      std::unique_ptr<ArtboardInstance>&& artboardInstance,
                      rcp<ViewModelInstance> viewModelInstance,
-                     rcp<DataContext> dataContext
-#ifdef WITH_RIVE_TOOLS
-                     ,
-                     rcp<File> filePin = nullptr
-#endif
-    );
+                     rcp<DataContext> dataContext);
     ~ScriptedArtboard();
 
     static constexpr uint8_t luaTag = LUA_T_COUNT + 10;
@@ -1222,26 +1181,19 @@ public:
     const lua_State* state() const { return m_state; }
 
     ViewModelInstanceValue* instanceValue() { return m_instanceValue.get(); }
-    bool disposed() const { return m_disposed; }
     ScriptedObject* owner() const { return m_owner; }
-#ifdef WITH_RIVE_TOOLS
-    uint32_t orphanOwnerTag() const { return m_orphanOwnerTag; }
-#endif
 
 private:
     std::vector<ScriptedListener> m_listeners;
     ScriptedObject* m_owner = nullptr;
 #ifdef WITH_RIVE_TOOLS
     ScriptingContext* m_orphanContext = nullptr;
-    uint32_t m_orphanOwnerTag = 0;
 #endif
     bool m_disposed = false;
 
 protected:
     lua_State* m_state;
     rcp<ViewModelInstanceValue> m_instanceValue;
-    int m_cachedValueRef = 0;
-    void clearCachedValueRef();
 };
 
 class ScriptedViewModel
@@ -1267,7 +1219,6 @@ public:
     {
         return m_viewModelInstance;
     }
-    rcp<ViewModel> viewModel() const { return m_viewModel; }
 
 private:
     lua_State* m_state;
@@ -1420,42 +1371,6 @@ public:
     void setValue(ScriptedImage* scriptedImage);
 };
 
-class ScriptedFont
-{
-public:
-    rcp<Font> font;
-    static constexpr uint8_t luaTag = LUA_T_COUNT + 65;
-    static constexpr const char* luaName = "Font";
-    static constexpr bool hasMetatable = false;
-};
-
-class ViewModelInstanceAssetFont;
-class ScriptedPropertyFont : public ScriptedProperty
-{
-public:
-    ScriptedPropertyFont(lua_State* L, rcp<ViewModelInstanceAssetFont> value);
-    static constexpr uint8_t luaTag = LUA_T_COUNT + 66;
-    static constexpr const char* luaName = "Property<Font>";
-    static constexpr bool hasMetatable = true;
-
-    int pushValue();
-    void setValue(ScriptedFont* scriptedFont);
-};
-
-class ViewModelInstanceAssetBlob;
-class BlobAsset;
-class ScriptedPropertyBlob : public ScriptedProperty
-{
-public:
-    ScriptedPropertyBlob(lua_State* L, rcp<ViewModelInstanceAssetBlob> value);
-    static constexpr uint8_t luaTag = LUA_T_COUNT + 67;
-    static constexpr const char* luaName = "Property<Blob>";
-    static constexpr bool hasMetatable = true;
-
-    int pushValue();
-    void setValue(BlobAsset* blob);
-};
-
 // Make
 // ScriptedPropertyViewModel
 //      - Nullable ViewModelInstanceValue (ViewModelInstanceViewModel)
@@ -1539,17 +1454,11 @@ int rive_lua_pcall_with_context(lua_State* state,
                                 int nresults);
 int rive_lua_pushRef(lua_State* state, int ref);
 void rive_lua_pop(lua_State* state, int count);
-/// LuaAtoms lookup for the state's useratom callback; lua_atoms.cpp, shared
-/// with the wasm script module build.
-int16_t rive_lua_findAtom(const char* chars, size_t length);
 
 #ifdef RIVE_ORE
 // Finishes any ORE render pass left open at script return and reports it
 // as a Lua error. Defined in src/lua/renderer/lua_gpu.cpp.
 void rive_lua_closeOrphanRenderPass(lua_State* state);
-// Ends any Canvas frame an errored script left open, which would otherwise
-// corrupt the deferred stream. Defined in src/lua/renderer/lua_gpu.cpp.
-void rive_lua_closeOrphanCanvasFrames(lua_State* state);
 #endif
 
 class ScriptingContext
@@ -1558,9 +1467,6 @@ public:
     ScriptingContext(Factory* factory) : m_factory(factory) {}
     virtual ~ScriptingContext() { shutdownAsync(); }
     Factory* factory() const { return m_factory; }
-    // A caller supplied VM is built before decode picks a factory, so File
-    // re-points it at the one the file imported through.
-    void adoptImportFactory(Factory* factory) { m_factory = factory; }
     ScriptedObject* currentScriptedObject() const
     {
         return m_currentScriptedObject;
@@ -1606,38 +1512,11 @@ public:
     // detached-root ancestor's recursion), so they are skipped.
     void advanceDetachedViewModels();
 
-    // Scoped :shader / :blob reference resolution. Bare names resolve in the
-    // calling chunk's scope first, then among host assets;
-    // lib:<label>/<path> matches any version of the label's library, whose
-    // mangled names self-describe as <label>[#id]@<version>/<path>.
-    class ScopedAssetReference
-    {
-    public:
-        ScopedAssetReference(lua_State* L, const char* reference);
-        // Rank a registered asset (full path) with its short name: 0 no
-        // match, 2 the caller's own library, 1 host or lib: match.
-        int match(const std::string& registeredName,
-                  const std::string& shortName) const;
-
-    private:
-        bool matchesLibrary(const std::string& registeredName) const;
-
-        std::string m_label;
-        std::string m_path;
-        std::string m_scopePrefix;
-        std::string m_bare;
-    };
-
-    // Ore GPU context for this VM, void* so callers cast to ore::Context*.
+    // Ore GPU context for this VM, derived from the render factory. Null when
+    // there is no render context, or it is not GPU-backed. Returned as void* so
+    // callers that include ore headers cast to ore::Context*.
     void* oreContext() const
     {
-        // A recording construction factory owns the context this VM's GPU work
-        // has to record into, and it has one before any device exists.
-        if (m_factory != nullptr)
-        {
-            if (auto* recording = m_factory->ore())
-                return recording;
-        }
         return m_renderContext ? m_renderContext->ore() : nullptr;
     }
 
@@ -1646,28 +1525,7 @@ public:
     // construction factory(). A RenderContext is a Factory, so callers needing
     // gpu APIs cast down to gpu::RenderContext*.
     void setRenderContext(Factory* ctx) { m_renderContext = ctx; }
-    Factory* renderContext() const
-    {
-        if (m_renderContext != nullptr)
-            return m_renderContext;
-        // Nothing handed this VM a device. A recording factory may still have
-        // been given one after import, so ask instead of reporting the null we
-        // saw while the scripts were running.
-        return m_factory != nullptr ? m_factory->renderContext() : nullptr;
-    }
-
-    // True when renderContext() resolved through the recording factory rather
-    // than a device handed to this VM. That device belongs to whoever attached
-    // it, so canvas backings must be deferred to it instead of allocated here.
-    bool renderContextIsLateBound() const { return m_renderContext == nullptr; }
-
-    // When non-null, Canvas:beginFrame records into the deferred stream
-    // instead of issuing to the real RenderContext. The construction factory
-    // answers, so a VM routes by importing through a recording session.
-    cmd::DeferredCanvasHost* deferredCanvasHost() const
-    {
-        return m_factory != nullptr ? m_factory->deferredCanvasHost() : nullptr;
-    }
+    Factory* renderContext() const { return m_renderContext; }
 
     // WorkPool for async operations (image decode, etc.).
     // Lazily created on first access. Shared across all contexts via a
@@ -1689,24 +1547,10 @@ public:
     void setOreFrameOpen(bool open) { m_oreFrameOpen = open; }
     bool oreFrameOpen() const { return m_oreFrameOpen; }
 
-    // Open canvas frames as registry refs so the post-pcall cleanup can
-    // close frames an errored script abandoned.
-    void registerOpenCanvasFrame(int ref) { m_openCanvasFrames.push_back(ref); }
-    void unregisterOpenCanvasFrame(int ref)
-    {
-        for (size_t i = 0; i < m_openCanvasFrames.size(); i++)
-        {
-            if (m_openCanvasFrames[i] == ref)
-            {
-                m_openCanvasFrames.erase(m_openCanvasFrames.begin() + i);
-                return;
-            }
-        }
-    }
-    std::vector<int> takeOpenCanvasFrames()
-    {
-        return std::move(m_openCanvasFrames);
-    }
+    // True while Artboard::drawCanvases() is actively walking scripted
+    // objects to invoke their drawCanvas() Lua callbacks.
+    void setCanvasDrawingPhase(bool value) { m_canvasDrawingPhase = value; }
+    bool canvasDrawingPhase() const { return m_canvasDrawingPhase; }
 
     // When set, context:gpuCanvas() always returns a deferred (texture-less)
     // canvas regardless of requested size, never calling makeRenderCanvas.
@@ -1738,8 +1582,8 @@ private:
     Factory* m_renderContext = nullptr;
     uint64_t m_ownerId = 0;
     bool m_oreFrameOpen = false;
+    bool m_canvasDrawingPhase = false;
     bool m_gpuCanvasDeferOnly = false;
-    std::vector<int> m_openCanvasFrames;
     intptr_t m_prevGLContext = 0;
 #ifdef __EMSCRIPTEN__
     int m_glHandle = 0;
@@ -1770,7 +1614,6 @@ private:
     std::unordered_map<uint32_t, int> m_assetGeneratorRefs;
     bool m_isPlaying = false;
     std::vector<ScriptedProperty*> m_orphanScriptedProperties;
-    uint32_t m_orphanOwnerTag = 0;
 
     // Per-VM RSTB blobs for WGSL shaders compiled during requestVM. Populated
     // by the scripting workspace response phase; looked up by loadShader().
@@ -1786,16 +1629,8 @@ public:
     void trackOrphanScriptedProperty(ScriptedProperty* property);
     void untrackOrphanScriptedProperty(ScriptedProperty* property);
     void disposeOrphanScriptedProperties();
-    // Hosts tag properties created while invoking script callbacks (a
-    // FileFormat view), then dispose that owner's orphans deterministically
-    // when the owner goes away instead of waiting on GC or a VM swap.
-    void orphanOwnerTag(uint32_t tag) { m_orphanOwnerTag = tag; }
-    uint32_t orphanOwnerTag() const { return m_orphanOwnerTag; }
-    void disposeOrphanScriptedProperties(uint32_t tag);
     void registerShaderRstb(std::string name, std::vector<uint8_t> bytes);
     const std::vector<uint8_t>* findShaderRstb(const std::string& name) const;
-    const std::vector<uint8_t>* findShaderRstb(
-        const ScopedAssetReference& reference) const;
     // Transfers all RSTB blobs out of this context (used during VM adoption
     // to preserve blobs across context replacement).
     std::unordered_map<std::string, std::vector<uint8_t>> takeShaderRstbs()
@@ -1804,16 +1639,6 @@ public:
     }
 #endif
 };
-
-#ifdef RIVE_CANVAS
-// Allocates a script canvas backing, deferring when a session is recording
-// or the device was late bound, since either way the replay worker owns the
-// texture.
-rcp<gpu::RenderCanvas> allocScriptRenderCanvas(gpu::RenderContext* rc,
-                                               ScriptingContext* ctx,
-                                               uint32_t width,
-                                               uint32_t height);
-#endif
 
 class ScopedScriptedObjectContext
 {
@@ -1841,6 +1666,32 @@ public:
 private:
     ScriptingContext* m_context;
     ScriptedObject* m_previous;
+};
+
+class ScopedCanvasDrawingPhase
+{
+public:
+    ScopedCanvasDrawingPhase(ScriptingContext* context) :
+        m_context(context),
+        m_previous(context == nullptr ? false : context->canvasDrawingPhase())
+    {
+        if (m_context != nullptr)
+        {
+            m_context->setCanvasDrawingPhase(true);
+        }
+    }
+
+    ~ScopedCanvasDrawingPhase()
+    {
+        if (m_context != nullptr)
+        {
+            m_context->setCanvasDrawingPhase(m_previous);
+        }
+    }
+
+private:
+    ScriptingContext* m_context;
+    bool m_previous;
 };
 
 class ScriptedDataValue
@@ -2007,8 +1858,6 @@ public:
     void clearScriptedObject() { m_scriptedObject = nullptr; }
     int pushViewModel(lua_State*);
     int pushRootViewModel(lua_State*);
-    int pushGlobalViewModel(lua_State*);
-    int pushGlobalViewModelNames(lua_State*);
     int pushDataContext(lua_State*);
     static constexpr uint8_t luaTag = LUA_T_COUNT + 28;
     static constexpr const char* luaName = "Context";
@@ -2383,23 +2232,16 @@ static void interruptCPP(lua_State* L, int gc)
 namespace rive
 {
 class ShaderAsset;
-class File;
-} // namespace rive
-// Load a shader by scoped reference into a ScriptedShader (populates both
-// vertex and fragment modules for GLSL targets with split entry points).
+}
+// Load a shader by name into a ScriptedShader (populates both vertex and
+// fragment modules for GLSL targets with split entry points).
 // Checks ScriptingContext::m_shaderRstbs first (editor path, compiled
 // during requestVM), then |fileAsset| if non-null (runtime .riv path).
 // Returns false on failure.
-bool lua_gpu_load_shader_by_name(
-    rive::ScriptedShader* out,
-    rive::ScriptingContext* context,
-    const rive::ScriptingContext::ScopedAssetReference& reference,
-    rive::ShaderAsset* fileAsset);
-
-// The file's ShaderAsset best matching a scoped reference, null when none.
-rive::ShaderAsset* lua_gpu_find_shader_asset(
-    rive::File* file,
-    const rive::ScriptingContext::ScopedAssetReference& reference);
+bool lua_gpu_load_shader_by_name(rive::ScriptedShader* out,
+                                 rive::ScriptingContext* context,
+                                 const char* name,
+                                 rive::ShaderAsset* fileAsset);
 
 // Compile a shader by name and push the resulting ScriptedShader onto the
 // Lua stack. Returns 1 on success, 0 on failure. Declared here (implemented

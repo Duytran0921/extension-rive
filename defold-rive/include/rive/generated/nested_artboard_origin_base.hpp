@@ -1,10 +1,10 @@
-#ifndef _RIVE_COMPONENT_ORIGIN_BASE_HPP_
-#define _RIVE_COMPONENT_ORIGIN_BASE_HPP_
+#ifndef _RIVE_NESTED_ARTBOARD_ORIGIN_BASE_HPP_
+#define _RIVE_NESTED_ARTBOARD_ORIGIN_BASE_HPP_
 #include "rive/component.hpp"
 #include "rive/core/field_types/core_double_type.hpp"
 namespace rive
 {
-class ComponentOriginBase : public Component
+class NestedArtboardOriginBase : public Component
 {
 protected:
     typedef Component Super;
@@ -18,7 +18,7 @@ public:
     {
         switch (typeKey)
         {
-            case ComponentOriginBase::typeKey:
+            case NestedArtboardOriginBase::typeKey:
             case ComponentBase::typeKey:
                 return true;
             default:
@@ -43,9 +43,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(originXPropertyKey, &m_OriginX, &value);
         m_OriginX = value;
-        RIVE_EDITOR_CHANGED(originXChanged());
+        originXChanged();
         notifyPropertyChanged(originXPropertyKey);
     }
 
@@ -56,14 +55,13 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(originYPropertyKey, &m_OriginY, &value);
         m_OriginY = value;
-        RIVE_EDITOR_CHANGED(originYChanged());
+        originYChanged();
         notifyPropertyChanged(originYPropertyKey);
     }
 
     Core* clone() const override;
-    void copy(const ComponentOriginBase& object)
+    void copy(const NestedArtboardOriginBase& object)
     {
         m_OriginX = object.m_OriginX;
         m_OriginY = object.m_OriginY;
@@ -87,9 +85,6 @@ public:
 protected:
     virtual void originXChanged() {}
     virtual void originYChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/component_origin_ext.inl"
-#endif
 };
 } // namespace rive
 

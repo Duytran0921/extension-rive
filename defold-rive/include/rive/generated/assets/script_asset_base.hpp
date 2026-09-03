@@ -3,9 +3,6 @@
 #include "rive/assets/text_asset.hpp"
 #include "rive/core/field_types/core_bool_type.hpp"
 #include "rive/core/field_types/core_uint_type.hpp"
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/editor_field_types.hpp"
-#endif
 namespace rive
 {
 class ScriptAssetBase : public TextAsset
@@ -54,11 +51,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(generatorFunctionRefPropertyKey,
-                             &m_GeneratorFunctionRef,
-                             &value);
         m_GeneratorFunctionRef = value;
-        RIVE_EDITOR_CHANGED(generatorFunctionRefChanged());
+        generatorFunctionRefChanged();
         notifyPropertyChanged(generatorFunctionRefPropertyKey);
     }
 
@@ -69,9 +63,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(isModulePropertyKey, &m_IsModule, &value);
         m_IsModule = value;
-        RIVE_EDITOR_CHANGED(isModuleChanged());
+        isModuleChanged();
         notifyPropertyChanged(isModulePropertyKey);
     }
 
@@ -85,11 +78,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(serializedImplementedMethodsPropertyKey,
-                             &m_SerializedImplementedMethods,
-                             &value);
         m_SerializedImplementedMethods = value;
-        RIVE_EDITOR_CHANGED(serializedImplementedMethodsChanged());
+        serializedImplementedMethodsChanged();
         notifyPropertyChanged(serializedImplementedMethodsPropertyKey);
     }
 
@@ -99,7 +89,6 @@ public:
         m_GeneratorFunctionRef = object.m_GeneratorFunctionRef;
         m_IsModule = object.m_IsModule;
         m_SerializedImplementedMethods = object.m_SerializedImplementedMethods;
-        RIVE_EDITOR_COPY(object);
         TextAsset::copy(object);
     }
 
@@ -118,7 +107,6 @@ public:
                     CoreUintType::deserialize(reader);
                 return true;
         }
-        RIVE_EDITOR_DESERIALIZE(propertyKey, reader);
         return TextAsset::deserialize(propertyKey, reader);
     }
 
@@ -126,9 +114,6 @@ protected:
     virtual void generatorFunctionRefChanged() {}
     virtual void isModuleChanged() {}
     virtual void serializedImplementedMethodsChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/assets/script_asset_ext.inl"
-#endif
 };
 } // namespace rive
 

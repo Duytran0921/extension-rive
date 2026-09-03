@@ -2,9 +2,6 @@
 #define _RIVE_KEYED_PROPERTY_BASE_HPP_
 #include "rive/core.hpp"
 #include "rive/core/field_types/core_uint_type.hpp"
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/editor_field_types.hpp"
-#endif
 namespace rive
 {
 class KeyedPropertyBase : public Core
@@ -43,9 +40,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(propertyKeyPropertyKey, &m_PropertyKey, &value);
         m_PropertyKey = value;
-        RIVE_EDITOR_CHANGED(propertyKeyChanged());
+        propertyKeyChanged();
         notifyPropertyChanged(propertyKeyPropertyKey);
     }
 
@@ -53,8 +49,6 @@ public:
     void copy(const KeyedPropertyBase& object)
     {
         m_PropertyKey = object.m_PropertyKey;
-        RIVE_EDITOR_COPY(object);
-        RIVE_EDITOR_COPY_VALIDATED(object);
     }
 
     bool deserialize(uint16_t propertyKey, BinaryReader& reader) override
@@ -65,15 +59,11 @@ public:
                 m_PropertyKey = CoreUintType::deserialize(reader);
                 return true;
         }
-        RIVE_EDITOR_DESERIALIZE(propertyKey, reader);
         return false;
     }
 
 protected:
     virtual void propertyKeyChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/keyed_property_ext.inl"
-#endif
 };
 } // namespace rive
 

@@ -1,8 +1,7 @@
 #ifndef _RIVE_TRANSITION_VALUE_ID_COMPARATOR_BASE_HPP_
 #define _RIVE_TRANSITION_VALUE_ID_COMPARATOR_BASE_HPP_
 #include "rive/animation/transition_value_comparator.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
+#include "rive/core/field_types/core_uint_type.hpp"
 namespace rive
 {
 class TransitionValueIdComparatorBase : public TransitionValueComparator
@@ -33,19 +32,18 @@ public:
     static const uint16_t valuePropertyKey = 653;
 
 protected:
-    Id m_Value = kEmptyId;
+    uint32_t m_Value = -1;
 
 public:
-    inline Id value() const { return m_Value; }
-    void value(Id value)
+    inline uint32_t value() const { return m_Value; }
+    void value(uint32_t value)
     {
         if (m_Value == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(valuePropertyKey, &m_Value, &value);
         m_Value = value;
-        RIVE_EDITOR_CHANGED(valueChanged());
+        valueChanged();
         notifyPropertyChanged(valuePropertyKey);
     }
 
@@ -61,7 +59,7 @@ public:
         switch (propertyKey)
         {
             case valuePropertyKey:
-                m_Value = CoreIdType::runtimeDeserialize(reader);
+                m_Value = CoreUintType::deserialize(reader);
                 return true;
         }
         return TransitionValueComparator::deserialize(propertyKey, reader);
@@ -69,9 +67,6 @@ public:
 
 protected:
     virtual void valueChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/transition_value_id_comparator_ext.inl"
-#endif
 };
 } // namespace rive
 

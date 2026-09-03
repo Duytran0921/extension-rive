@@ -4,9 +4,6 @@
 #include "rive/core/field_types/core_bool_type.hpp"
 #include "rive/core/field_types/core_double_type.hpp"
 #include "rive/core/field_types/core_uint_type.hpp"
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/editor_field_types.hpp"
-#endif
 namespace rive
 {
 class LinearAnimationBase : public Animation
@@ -60,9 +57,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(fpsPropertyKey, &m_Fps, &value);
         m_Fps = value;
-        RIVE_EDITOR_CHANGED(fpsChanged());
+        fpsChanged();
         notifyPropertyChanged(fpsPropertyKey);
     }
 
@@ -73,9 +69,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(durationPropertyKey, &m_Duration, &value);
         m_Duration = value;
-        RIVE_EDITOR_CHANGED(durationChanged());
+        durationChanged();
         notifyPropertyChanged(durationPropertyKey);
     }
 
@@ -86,9 +81,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(speedPropertyKey, &m_Speed, &value);
         m_Speed = value;
-        RIVE_EDITOR_CHANGED(speedChanged());
+        speedChanged();
         notifyPropertyChanged(speedPropertyKey);
     }
 
@@ -99,9 +93,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(loopValuePropertyKey, &m_LoopValue, &value);
         m_LoopValue = value;
-        RIVE_EDITOR_CHANGED(loopValueChanged());
+        loopValueChanged();
         notifyPropertyChanged(loopValuePropertyKey);
     }
 
@@ -112,9 +105,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(workStartPropertyKey, &m_WorkStart, &value);
         m_WorkStart = value;
-        RIVE_EDITOR_CHANGED(workStartChanged());
+        workStartChanged();
         notifyPropertyChanged(workStartPropertyKey);
     }
 
@@ -125,9 +117,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(workEndPropertyKey, &m_WorkEnd, &value);
         m_WorkEnd = value;
-        RIVE_EDITOR_CHANGED(workEndChanged());
+        workEndChanged();
         notifyPropertyChanged(workEndPropertyKey);
     }
 
@@ -138,11 +129,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(enableWorkAreaPropertyKey,
-                             &m_EnableWorkArea,
-                             &value);
         m_EnableWorkArea = value;
-        RIVE_EDITOR_CHANGED(enableWorkAreaChanged());
+        enableWorkAreaChanged();
         notifyPropertyChanged(enableWorkAreaPropertyKey);
     }
 
@@ -153,9 +141,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(quantizePropertyKey, &m_Quantize, &value);
         m_Quantize = value;
-        RIVE_EDITOR_CHANGED(quantizeChanged());
+        quantizeChanged();
         notifyPropertyChanged(quantizePropertyKey);
     }
 
@@ -170,7 +157,6 @@ public:
         m_WorkEnd = object.m_WorkEnd;
         m_EnableWorkArea = object.m_EnableWorkArea;
         m_Quantize = object.m_Quantize;
-        RIVE_EDITOR_COPY(object);
         Animation::copy(object);
     }
 
@@ -203,7 +189,6 @@ public:
                 m_Quantize = CoreBoolType::deserialize(reader);
                 return true;
         }
-        RIVE_EDITOR_DESERIALIZE(propertyKey, reader);
         return Animation::deserialize(propertyKey, reader);
     }
 
@@ -216,9 +201,6 @@ protected:
     virtual void workEndChanged() {}
     virtual void enableWorkAreaChanged() {}
     virtual void quantizeChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/linear_animation_ext.inl"
-#endif
 };
 } // namespace rive
 

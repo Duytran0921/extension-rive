@@ -46,9 +46,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(easingValuePropertyKey, &m_EasingValue, &value);
         m_EasingValue = value;
-        RIVE_EDITOR_CHANGED(easingValueChanged());
+        easingValueChanged();
         notifyPropertyChanged(easingValuePropertyKey);
     }
 
@@ -59,9 +58,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(amplitudePropertyKey, &m_Amplitude, &value);
         m_Amplitude = value;
-        RIVE_EDITOR_CHANGED(amplitudeChanged());
+        amplitudeChanged();
         notifyPropertyChanged(amplitudePropertyKey);
     }
 
@@ -72,9 +70,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(periodPropertyKey, &m_Period, &value);
         m_Period = value;
-        RIVE_EDITOR_CHANGED(periodChanged());
+        periodChanged();
         notifyPropertyChanged(periodPropertyKey);
     }
 
@@ -108,9 +105,6 @@ protected:
     virtual void easingValueChanged() {}
     virtual void amplitudeChanged() {}
     virtual void periodChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/elastic_interpolator_ext.inl"
-#endif
 };
 } // namespace rive
 

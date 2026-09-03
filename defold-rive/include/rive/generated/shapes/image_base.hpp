@@ -1,9 +1,7 @@
 #ifndef _RIVE_IMAGE_BASE_HPP_
 #define _RIVE_IMAGE_BASE_HPP_
 #include "rive/core/field_types/core_double_type.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
 #include "rive/core/field_types/core_uint_type.hpp"
-#include "rive/core/id.hpp"
 #include "rive/drawable.hpp"
 namespace rive
 {
@@ -42,32 +40,25 @@ public:
     static const uint16_t fitPropertyKey = 974;
     static const uint16_t alignmentXPropertyKey = 975;
     static const uint16_t alignmentYPropertyKey = 976;
-    static const uint16_t samplerFilterPropertyKey = 1076;
-    static const uint16_t samplerWrapXPropertyKey = 1077;
-    static const uint16_t samplerWrapYPropertyKey = 1078;
 
 protected:
-    Id m_AssetId = kEmptyId;
+    uint32_t m_AssetId = -1;
     float m_OriginX = 0.5f;
     float m_OriginY = 0.5f;
     uint32_t m_Fit = 0;
     float m_AlignmentX = 0.0f;
     float m_AlignmentY = 0.0f;
-    uint8_t m_SamplerFilter = 0;
-    uint8_t m_SamplerWrapX = 0;
-    uint8_t m_SamplerWrapY = 0;
 
 public:
-    inline Id assetId() const { return m_AssetId; }
-    void assetId(Id value)
+    inline uint32_t assetId() const { return m_AssetId; }
+    void assetId(uint32_t value)
     {
         if (m_AssetId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(assetIdPropertyKey, &m_AssetId, &value);
         m_AssetId = value;
-        RIVE_EDITOR_CHANGED(assetIdChanged());
+        assetIdChanged();
         notifyPropertyChanged(assetIdPropertyKey);
     }
 
@@ -78,9 +69,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(originXPropertyKey, &m_OriginX, &value);
         m_OriginX = value;
-        RIVE_EDITOR_CHANGED(originXChanged());
+        originXChanged();
         notifyPropertyChanged(originXPropertyKey);
     }
 
@@ -91,9 +81,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(originYPropertyKey, &m_OriginY, &value);
         m_OriginY = value;
-        RIVE_EDITOR_CHANGED(originYChanged());
+        originYChanged();
         notifyPropertyChanged(originYPropertyKey);
     }
 
@@ -104,9 +93,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(fitPropertyKey, &m_Fit, &value);
         m_Fit = value;
-        RIVE_EDITOR_CHANGED(fitChanged());
+        fitChanged();
         notifyPropertyChanged(fitPropertyKey);
     }
 
@@ -117,9 +105,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(alignmentXPropertyKey, &m_AlignmentX, &value);
         m_AlignmentX = value;
-        RIVE_EDITOR_CHANGED(alignmentXChanged());
+        alignmentXChanged();
         notifyPropertyChanged(alignmentXPropertyKey);
     }
 
@@ -130,51 +117,9 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(alignmentYPropertyKey, &m_AlignmentY, &value);
         m_AlignmentY = value;
-        RIVE_EDITOR_CHANGED(alignmentYChanged());
+        alignmentYChanged();
         notifyPropertyChanged(alignmentYPropertyKey);
-    }
-
-    inline uint8_t samplerFilter() const { return m_SamplerFilter; }
-    void samplerFilter(uint8_t value)
-    {
-        if (m_SamplerFilter == value)
-        {
-            return;
-        }
-        RIVE_EDITOR_CHANGING(samplerFilterPropertyKey,
-                             &m_SamplerFilter,
-                             &value);
-        m_SamplerFilter = value;
-        RIVE_EDITOR_CHANGED(samplerFilterChanged());
-        notifyPropertyChanged(samplerFilterPropertyKey);
-    }
-
-    inline uint8_t samplerWrapX() const { return m_SamplerWrapX; }
-    void samplerWrapX(uint8_t value)
-    {
-        if (m_SamplerWrapX == value)
-        {
-            return;
-        }
-        RIVE_EDITOR_CHANGING(samplerWrapXPropertyKey, &m_SamplerWrapX, &value);
-        m_SamplerWrapX = value;
-        RIVE_EDITOR_CHANGED(samplerWrapXChanged());
-        notifyPropertyChanged(samplerWrapXPropertyKey);
-    }
-
-    inline uint8_t samplerWrapY() const { return m_SamplerWrapY; }
-    void samplerWrapY(uint8_t value)
-    {
-        if (m_SamplerWrapY == value)
-        {
-            return;
-        }
-        RIVE_EDITOR_CHANGING(samplerWrapYPropertyKey, &m_SamplerWrapY, &value);
-        m_SamplerWrapY = value;
-        RIVE_EDITOR_CHANGED(samplerWrapYChanged());
-        notifyPropertyChanged(samplerWrapYPropertyKey);
     }
 
     Core* clone() const override;
@@ -186,9 +131,6 @@ public:
         m_Fit = object.m_Fit;
         m_AlignmentX = object.m_AlignmentX;
         m_AlignmentY = object.m_AlignmentY;
-        m_SamplerFilter = object.m_SamplerFilter;
-        m_SamplerWrapX = object.m_SamplerWrapX;
-        m_SamplerWrapY = object.m_SamplerWrapY;
         Drawable::copy(object);
     }
 
@@ -197,7 +139,7 @@ public:
         switch (propertyKey)
         {
             case assetIdPropertyKey:
-                m_AssetId = CoreIdType::runtimeDeserialize(reader);
+                m_AssetId = CoreUintType::deserialize(reader);
                 return true;
             case originXPropertyKey:
                 m_OriginX = CoreDoubleType::deserialize(reader);
@@ -214,15 +156,6 @@ public:
             case alignmentYPropertyKey:
                 m_AlignmentY = CoreDoubleType::deserialize(reader);
                 return true;
-            case samplerFilterPropertyKey:
-                m_SamplerFilter = CoreUintType::deserialize(reader);
-                return true;
-            case samplerWrapXPropertyKey:
-                m_SamplerWrapX = CoreUintType::deserialize(reader);
-                return true;
-            case samplerWrapYPropertyKey:
-                m_SamplerWrapY = CoreUintType::deserialize(reader);
-                return true;
         }
         return Drawable::deserialize(propertyKey, reader);
     }
@@ -234,12 +167,6 @@ protected:
     virtual void fitChanged() {}
     virtual void alignmentXChanged() {}
     virtual void alignmentYChanged() {}
-    virtual void samplerFilterChanged() {}
-    virtual void samplerWrapXChanged() {}
-    virtual void samplerWrapYChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/shapes/image_ext.inl"
-#endif
 };
 } // namespace rive
 

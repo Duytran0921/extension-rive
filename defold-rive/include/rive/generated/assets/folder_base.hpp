@@ -1,15 +1,15 @@
-#ifndef _RIVE_LAYOUT_PARTICIPANT_BASE_HPP_
-#define _RIVE_LAYOUT_PARTICIPANT_BASE_HPP_
-#include "rive/layout/layout_node_style.hpp"
+#ifndef _RIVE_FOLDER_BASE_HPP_
+#define _RIVE_FOLDER_BASE_HPP_
+#include "rive/assets/asset.hpp"
 namespace rive
 {
-class LayoutParticipantBase : public LayoutNodeStyle
+class FolderBase : public Asset
 {
 protected:
-    typedef LayoutNodeStyle Super;
+    typedef Asset Super;
 
 public:
-    static const uint16_t typeKey = 1066;
+    static const uint16_t typeKey = 102;
 
     /// Helper to quickly determine if a core object extends another without
     /// RTTI at runtime.
@@ -17,10 +17,8 @@ public:
     {
         switch (typeKey)
         {
-            case LayoutParticipantBase::typeKey:
-            case LayoutNodeStyleBase::typeKey:
-            case LayoutSizingStyleBase::typeKey:
-            case ComponentBase::typeKey:
+            case FolderBase::typeKey:
+            case AssetBase::typeKey:
                 return true;
             default:
                 return false;
@@ -30,6 +28,8 @@ public:
     uint16_t coreType() const override { return typeKey; }
 
     Core* clone() const override;
+
+protected:
 };
 } // namespace rive
 

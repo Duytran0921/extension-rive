@@ -42,9 +42,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(speedPropertyKey, &m_Speed, &value);
         m_Speed = value;
-        RIVE_EDITOR_CHANGED(speedChanged());
+        speedChanged();
         notifyPropertyChanged(speedPropertyKey);
     }
 
@@ -67,9 +66,6 @@ public:
 
 protected:
     virtual void speedChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/advanceable_state_ext.inl"
-#endif
 };
 } // namespace rive
 

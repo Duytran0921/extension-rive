@@ -6,14 +6,10 @@
 
 #include <cstdarg>
 #include <cstdio>
-#include <cstdlib>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 #include "rive/refcnt.hpp"
-#include "rive/renderer/render_canvas.hpp"
-#include "rive/renderer/rive_render_image.hpp"
 #include "rive/renderer/ore/ore_types.hpp"
 #include "rive/renderer/ore/ore_buffer.hpp"
 #include "rive/renderer/ore/ore_texture.hpp"
@@ -22,12 +18,6 @@
 #include "rive/renderer/ore/ore_pipeline.hpp"
 #include "rive/renderer/ore/ore_bind_group.hpp"
 #include "rive/renderer/ore/ore_render_pass.hpp"
-#include "rive/renderer/ore/cmd/ore_command_buffer.hpp"
-
-namespace rive
-{
-class RenderImage;
-}
 
 namespace rive::gpu
 {
@@ -117,52 +107,6 @@ public:
     virtual void waitForGPU() = 0;
 
     virtual rcp<TextureView> wrapCanvasTexture(gpu::RenderCanvas* canvas) = 0;
-
-    // Color format makeRenderCanvas allocates. A backend that allocates
-    // anything other than rgba8 must override or canvas draws fail the
-    // pipeline compat check at replay.
-    //
-    // An override also has to reach the recorder before any pass records
-    // against a canvas, which a host that binds its real context late cannot
-    // do. DeferredOreContext tripwires on a late bind whose override
-    // disagrees with the default it already recorded.
-    virtual TextureFormat canvasTargetFormat() const
-    {
-        return TextureFormat::rgba8unorm;
-    }
-
-    // True only for the deferred recording context. Callers that would touch
-    // the driver immediately take a recording path instead.
-    virtual bool isRecording() const { return false; }
-
-    // Recording form of Image:view on a canvas backed image. Only the
-    // deferred context implements this, gated by isRecording.
-    virtual rcp<TextureView> recordWrapCanvasImage(RenderImage* /*image*/,
-                                                   uint32_t /*width*/,
-                                                   uint32_t /*height*/)
-    {
-        return nullptr;
-    }
-
-    // Recording form of Image:view on a decoded image. Only the deferred
-    // context implements this.
-    virtual rcp<TextureView> recordWrapImageView(uint32_t /*imageId*/,
-                                                 uint32_t /*width*/,
-                                                 uint32_t /*height*/)
-    {
-        return nullptr;
-    }
-
-    // Sampling wrap of a 2D canvas for Image:view. GL overrides to insert its
-    // Y flip mirror.
-    virtual rcp<TextureView> wrapCanvasSampleView(gpu::RenderCanvas* canvas)
-    {
-        auto* image = canvas->renderImage();
-        return wrapRiveTexture(image->getTexture(),
-                               canvas->width(),
-                               canvas->height());
-    }
-
     virtual rcp<TextureView> wrapRiveTexture(gpu::Texture* gpuTex,
                                              uint32_t width,
                                              uint32_t height) = 0;
@@ -170,39 +114,17 @@ public:
     // Which RSTB shader variant this backend consumes.
     virtual ShaderTarget shaderTarget() const = 0;
 
-    // Whether features() describes a device that will actually run the work.
-    // Only a recording context with no replay device bound yet answers false:
-    // its m_features still holds Features' own initializers, which read as a
-    // real low end device and are indistinguishable from one. A caller that
-    // would branch on a capability must ask this first, because a recorded
-    // branch replays on the device it guessed wrong about.
-    virtual bool featuresKnown() const { return true; }
-
     // ------------------------------------------------------------------------
     // Cross-cutting state and accessors. Non-virtual; live on this base
     // because they are uniform across backends.
     // ------------------------------------------------------------------------
 
-    // Only meaningful when featuresKnown().
     const Features& features() const { return m_features; }
 
     // Active render pass tracking — used by Lua bindings to auto-finish
     // stale passes and by backends that enforce one-encoder-at-a-time.
     RenderPass* activeRenderPass() const { return m_activeRenderPass; }
     void setActiveRenderPass(RenderPass* pass) { m_activeRenderPass = pass; }
-
-    // When on, the render pass entry point records and replays instead of
-    // issuing immediately. Seeded from the RIVE_ORE_DEFER env var.
-    bool deferredRecording() const { return m_deferredRecording; }
-    void setDeferredRecording(bool deferred) { m_deferredRecording = deferred; }
-
-    // True when the backend replays the accumulated pendingFrame at endFrame.
-    // False falls back to per pass inline replay, which is byte identical.
-    virtual bool usesDeferredFrameReplay() const { return false; }
-
-    // Per frame stream deferred passes record into; the backend drains it at
-    // endFrame.
-    cmd::OreCommandBuffer& pendingFrame() { return m_pendingFrame; }
 
     // Called at the top of every backend's beginRenderPass(). If a prior pass
     // is still open, finish it — matches the Lua binding's auto-finish
@@ -241,19 +163,6 @@ public:
         m_lastError = buf;
     }
 
-    // Shared by baked id, so one bind group does not cost two descriptor
-    // sets on Vulkan and D3D12. Strong refs, released with the context.
-    rcp<BindGroupLayout> findInternedBindGroupLayout(uint64_t layoutId) const
-    {
-        auto it = m_internedLayouts.find(layoutId);
-        return it == m_internedLayouts.end() ? nullptr : it->second;
-    }
-
-    void internBindGroupLayout(uint64_t layoutId, rcp<BindGroupLayout> layout)
-    {
-        m_internedLayouts[layoutId] = std::move(layout);
-    }
-
     Context(const Context&) = delete;
     Context& operator=(const Context&) = delete;
     Context(Context&&) = delete;
@@ -262,11 +171,7 @@ public:
 protected:
     Context(rcp<rive::gpu::GPUResourceManager> manager) :
         m_manager(std::move(manager))
-    {
-#ifndef NO_GETENV
-        m_deferredRecording = getenv("RIVE_ORE_DEFER") != nullptr;
-#endif
-    }
+    {}
 
     Features m_features;
 
@@ -278,48 +183,11 @@ protected:
     // Last validation error from setPipeline() / setBindGroup().
     std::string m_lastError;
 
-    bool m_deferredRecording = false;
-
-    std::unordered_map<uint64_t, rcp<BindGroupLayout>> m_internedLayouts;
-
-    cmd::OreCommandBuffer m_pendingFrame;
-
     // Back-pointer to the GPUResourceManager for GPUResource lifecycle
     // this is actually owned by the render context impl that created the given
     // ore context but its held here for convenience of ore resources that need
     // to defer cleanup until a safe frame is reached.
     rcp<rive::gpu::GPUResourceManager> m_manager;
-};
-
-// The replay device's capabilities carried as data, so a recording thread can
-// answer scripts truthfully without holding the device. A host with the real
-// context in hand captures it with from(); a host whose device lives on
-// another thread or process ships these values across once instead.
-struct ReplayCaps
-{
-    Features features{};
-    bool featuresKnown = false;
-    ShaderTarget shaderTarget = ShaderTarget::glsl;
-    TextureFormat canvasTargetFormat = TextureFormat::rgba8unorm;
-
-    static ReplayCaps from(const Context& real)
-    {
-        ReplayCaps caps;
-        caps.features = real.features();
-        caps.featuresKnown = real.featuresKnown();
-        caps.shaderTarget = real.shaderTarget();
-        caps.canvasTargetFormat = real.canvasTargetFormat();
-        return caps;
-    }
-
-    // Whether the device about to replay is the one this recording was
-    // declared for. A stream recorded against other caps replays the wrong
-    // shader variant and canvas format, wrong in ways replay cannot detect.
-    bool matchesReplayDevice(const Context& real) const
-    {
-        return shaderTarget == real.shaderTarget() &&
-               canvasTargetFormat == real.canvasTargetFormat();
-    }
 };
 
 // ============================================================================

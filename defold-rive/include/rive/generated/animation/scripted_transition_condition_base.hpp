@@ -1,8 +1,7 @@
 #ifndef _RIVE_SCRIPTED_TRANSITION_CONDITION_BASE_HPP_
 #define _RIVE_SCRIPTED_TRANSITION_CONDITION_BASE_HPP_
 #include "rive/animation/transition_condition.hpp"
-#include "rive/core/field_types/core_id_type.hpp"
-#include "rive/core/id.hpp"
+#include "rive/core/field_types/core_uint_type.hpp"
 namespace rive
 {
 class ScriptedTransitionConditionBase : public TransitionCondition
@@ -32,21 +31,18 @@ public:
     static const uint16_t scriptAssetIdPropertyKey = 931;
 
 protected:
-    Id m_ScriptAssetId = kEmptyId;
+    uint32_t m_ScriptAssetId = -1;
 
 public:
-    inline Id scriptAssetId() const { return m_ScriptAssetId; }
-    void scriptAssetId(Id value)
+    inline uint32_t scriptAssetId() const { return m_ScriptAssetId; }
+    void scriptAssetId(uint32_t value)
     {
         if (m_ScriptAssetId == value)
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(scriptAssetIdPropertyKey,
-                             &m_ScriptAssetId,
-                             &value);
         m_ScriptAssetId = value;
-        RIVE_EDITOR_CHANGED(scriptAssetIdChanged());
+        scriptAssetIdChanged();
         notifyPropertyChanged(scriptAssetIdPropertyKey);
     }
 
@@ -62,7 +58,7 @@ public:
         switch (propertyKey)
         {
             case scriptAssetIdPropertyKey:
-                m_ScriptAssetId = CoreIdType::runtimeDeserialize(reader);
+                m_ScriptAssetId = CoreUintType::deserialize(reader);
                 return true;
         }
         return TransitionCondition::deserialize(propertyKey, reader);
@@ -70,9 +66,6 @@ public:
 
 protected:
     virtual void scriptAssetIdChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/animation/scripted_transition_condition_ext.inl"
-#endif
 };
 } // namespace rive
 

@@ -48,9 +48,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(inValuesPropertyKey, &m_InValues, &value);
         m_InValues = value;
-        RIVE_EDITOR_CHANGED(inValuesChanged());
+        inValuesChanged();
         notifyPropertyChanged(inValuesPropertyKey);
     }
 
@@ -61,9 +60,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(inIndicesPropertyKey, &m_InIndices, &value);
         m_InIndices = value;
-        RIVE_EDITOR_CHANGED(inIndicesChanged());
+        inIndicesChanged();
         notifyPropertyChanged(inIndicesPropertyKey);
     }
 
@@ -74,9 +72,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(outValuesPropertyKey, &m_OutValues, &value);
         m_OutValues = value;
-        RIVE_EDITOR_CHANGED(outValuesChanged());
+        outValuesChanged();
         notifyPropertyChanged(outValuesPropertyKey);
     }
 
@@ -87,9 +84,8 @@ public:
         {
             return;
         }
-        RIVE_EDITOR_CHANGING(outIndicesPropertyKey, &m_OutIndices, &value);
         m_OutIndices = value;
-        RIVE_EDITOR_CHANGED(outIndicesChanged());
+        outIndicesChanged();
         notifyPropertyChanged(outIndicesPropertyKey);
     }
 
@@ -128,9 +124,6 @@ protected:
     virtual void inIndicesChanged() {}
     virtual void outValuesChanged() {}
     virtual void outIndicesChanged() {}
-#ifdef WITH_RIVE_EDITOR
-#include "editor_native/generated/bones/cubic_weight_ext.inl"
-#endif
 };
 } // namespace rive
 

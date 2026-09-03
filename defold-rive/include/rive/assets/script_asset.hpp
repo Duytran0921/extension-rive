@@ -4,10 +4,12 @@
 #include "rive/generated/assets/script_asset_base.hpp"
 #include "rive/simple_array.hpp"
 #include <stdio.h>
-#include <cstdint>
-#include <functional>
 #ifdef WITH_RIVE_SCRIPTING
 #include <unordered_set>
+#endif
+
+#ifdef WITH_RIVE_SCRIPTING
+struct lua_State;
 #endif
 
 namespace rive
@@ -16,7 +18,7 @@ class Artboard;
 class Component;
 class DataBind;
 class ScriptedObject;
-class ScriptBackend;
+class ScriptingVM;
 
 enum ScriptProtocol
 {
@@ -83,8 +85,7 @@ private:
     static const int m_resizesBit = 1 << 12;
     static const int m_listenerPerforms = 1 << 13;
     static const int m_listenerPerformsAction = 1 << 14;
-    // Bit 15 was drawCanvas; the callback is gone but the wire bit stays
-    // reserved so older exports keep their layout.
+    static const int m_drawsCanvasBit = 1 << 15;
     static const int m_wantsKeyboardInputBit = 1 << 16;
     static const int m_wantsTextInputBit = 1 << 17;
     static const int m_wantsGamepadConnect = 1 << 18;
@@ -165,6 +166,10 @@ public:
     {
         return (m_implementedMethods & m_dataReverseConvertsBit) != 0;
     }
+    bool drawsCanvas()
+    {
+        return (m_implementedMethods & m_drawsCanvasBit) != 0;
+    }
     bool wantsKeyboardInput()
     {
         return (m_implementedMethods & m_wantsKeyboardInputBit) != 0;
@@ -230,13 +235,8 @@ public:
     void file(File* value) { m_file = value; }
     File* file() const { return m_file; }
 #ifdef WITH_RIVE_SCRIPTING
-    /// The file's active script backend: the wasm module VM when the file
-    /// carries one, else the Luau VM.
-    ScriptBackend* backend();
-#ifdef WITH_RIVE_SCRIPTING_WASM
-    /// Set at registration to the VM of the module this script lives in.
-    void wasmBackend(ScriptBackend* value) { m_wasmBackend = value; }
-#endif
+    ScriptingVM* scriptingVM();
+    lua_State* vm();
     void registrationComplete(int ref) override;
 #endif
     std::string moduleName() override
@@ -248,9 +248,6 @@ public:
 private:
     File* m_file = nullptr;
 #ifdef WITH_RIVE_SCRIPTING
-    // Written by the wasm backend only; lives under the umbrella so the
-    // class layout does not depend on the backend defines.
-    [[maybe_unused]] ScriptBackend* m_wasmBackend = nullptr;
     bool m_scriptRegistered = false;
     SimpleArray<uint8_t> m_bytecode;
     bool m_initted = false;
